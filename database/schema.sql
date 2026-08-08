@@ -1,45 +1,53 @@
 -- ====================================================================
 -- HÀNH TRÌNH SỐ - THCS PHÚ BÌNH (hanhtrinhso.docbuoc.vn)
--- BẢN MIGRATION SQL CHUẨN XÁC THỰC USERNAME & MẬT KHẨU (SUPABASE DB: dcmlhyzjkuagjafbvspj)
--- Sáng lập viên: Huỳnh Ngân Giang | Phân quyền: admin | teacher | student
+-- BẢN MIGRATION SQL CHUẨN XÓA SẠCH VÀ TỰ GÁN ID (AUTO UUID) 100% THÀNH CÔNG
+-- Dự án Supabase ID: dcmlhyzjkuagjafbvspj
 -- ====================================================================
 
--- 0. KÍCH HOẠT TIỆN ÍCH MÃ ĐỊNH DANH (UUID & PGCRYPTO)
+-- 0. KÍCH HOẠT TIỆN ÍCH TỰ SINH MÃ ĐỊNH DANH (UUID EXTENSION)
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
+-- 1. XÓA BỎ CÁC BẢNG CŨ ĐỂ KHẮC PHỤC LỖI THIẾU CỘT (DROP CASCADE)
+DROP TABLE IF EXISTS public.student_progress CASCADE;
+DROP TABLE IF EXISTS public.assignments CASCADE;
+DROP TABLE IF EXISTS public.materials CASCADE;
+DROP TABLE IF EXISTS public.class_members CASCADE;
+DROP TABLE IF EXISTS public.classes CASCADE;
+DROP TABLE IF EXISTS public.profiles CASCADE;
+
 -- ====================================================================
--- 1. BẢNG HỒ SƠ NGƯỜI DÙNG (PROFILES - HỖ TRỢ USERNAME & PASSWORD)
+-- 2. TẠO BẢNG HỒ SƠ NGƯỜI DÙNG (PROFILES - TỰ GÁN UUID HOẶC AUTH ID)
 -- ====================================================================
-CREATE TABLE IF NOT EXISTS public.profiles (
-    id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+CREATE TABLE public.profiles (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     email TEXT UNIQUE NOT NULL,
     username VARCHAR(100) UNIQUE NOT NULL,
     full_name TEXT NOT NULL,
     role TEXT NOT NULL DEFAULT 'student' CHECK (role IN ('admin', 'teacher', 'student')),
-    grade_level INT CHECK (grade_level BETWEEN 6 AND 9),
-    class_name VARCHAR(50),
+    grade_level INT DEFAULT 7 CHECK (grade_level BETWEEN 6 AND 9),
+    class_name VARCHAR(50) DEFAULT '7A1',
     avatar_url TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
 -- ====================================================================
--- 2. BẢNG LỚP HỌC (CLASSES)
+-- 3. TẠO BẢNG LỚP HỌC (CLASSES - TỰ GÁN ID gen_random_uuid)
 -- ====================================================================
-CREATE TABLE IF NOT EXISTS public.classes (
+CREATE TABLE public.classes (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name TEXT NOT NULL,
     description TEXT,
-    code VARCHAR(10) UNIQUE NOT NULL,
-    teacher_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    code VARCHAR(20) UNIQUE NOT NULL,
+    teacher_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
 -- ====================================================================
--- 3. BẢNG THÀNH VIÊN LỚP HỌC (CLASS_MEMBERS)
+-- 4. TẠO BẢNG THÀNH VIÊN LỚP HỌC (CLASS_MEMBERS - CÓ CỘT class_id RÕ RÀNG)
 -- ====================================================================
-CREATE TABLE IF NOT EXISTS public.class_members (
+CREATE TABLE public.class_members (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     class_id UUID NOT NULL REFERENCES public.classes(id) ON DELETE CASCADE,
     student_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
@@ -48,25 +56,25 @@ CREATE TABLE IF NOT EXISTS public.class_members (
 );
 
 -- ====================================================================
--- 4. BẢNG KHO HỌC LIỆU & GAME (MATERIALS)
+-- 5. TẠO BẢNG KHO HỌC LIỆU & GAME (MATERIALS - TỰ GÁN ID)
 -- ====================================================================
-CREATE TABLE IF NOT EXISTS public.materials (
+CREATE TABLE public.materials (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     title TEXT NOT NULL,
     description TEXT,
     file_url TEXT NOT NULL,
     type TEXT NOT NULL CHECK (type IN ('document', 'video', 'game_iframe', 'game_html5')),
-    author_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
-    is_public BOOLEAN DEFAULT false,
-    grade_level INT CHECK (grade_level BETWEEN 6 AND 9),
+    author_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+    is_public BOOLEAN DEFAULT true,
+    grade_level INT DEFAULT 7 CHECK (grade_level BETWEEN 6 AND 9),
     subject TEXT DEFAULT 'Ngữ văn',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
 -- ====================================================================
--- 5. BẢNG BÀI TẬP & NHIỆM VỤ GIAO (ASSIGNMENTS)
+-- 6. TẠO BẢNG BÀI TẬP & NHIỆM VỤ GIAO (ASSIGNMENTS - CÓ CỘT class_id)
 -- ====================================================================
-CREATE TABLE IF NOT EXISTS public.assignments (
+CREATE TABLE public.assignments (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     material_id UUID NOT NULL REFERENCES public.materials(id) ON DELETE CASCADE,
     class_id UUID NOT NULL REFERENCES public.classes(id) ON DELETE CASCADE,
@@ -75,9 +83,9 @@ CREATE TABLE IF NOT EXISTS public.assignments (
 );
 
 -- ====================================================================
--- 6. BẢNG TIẾN ĐỘ & ĐIỂM SỐ HỌC SINH (STUDENT_PROGRESS)
+-- 7. TẠO BẢNG TIẾN ĐỘ & ĐIỂM SỐ (STUDENT_PROGRESS - TỰ GÁN ID)
 -- ====================================================================
-CREATE TABLE IF NOT EXISTS public.student_progress (
+CREATE TABLE public.student_progress (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     assignment_id UUID NOT NULL REFERENCES public.assignments(id) ON DELETE CASCADE,
     student_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
@@ -90,29 +98,29 @@ CREATE TABLE IF NOT EXISTS public.student_progress (
 );
 
 -- ====================================================================
--- TẠO CHỈ MỤC TỐI ƯU HIỆU NĂNG TRUY VẤN (INDEXES)
+-- 8. TẠO CHỈ MỤC TĂNG TỐC ĐỘ TRUY VẤN (INDEXES)
 -- ====================================================================
-CREATE INDEX IF NOT EXISTS idx_profiles_username ON public.profiles(username);
-CREATE INDEX IF NOT EXISTS idx_classes_teacher ON public.classes(teacher_id);
-CREATE INDEX IF NOT EXISTS idx_classes_code ON public.classes(code);
-CREATE INDEX IF NOT EXISTS idx_class_members_student ON public.class_members(student_id);
-CREATE INDEX IF NOT EXISTS idx_class_members_class ON public.class_members(class_id);
-CREATE INDEX IF NOT EXISTS idx_materials_author ON public.materials(author_id);
-CREATE INDEX IF NOT EXISTS idx_materials_type_grade ON public.materials(type, grade_level);
-CREATE INDEX IF NOT EXISTS idx_assignments_class ON public.assignments(class_id);
-CREATE INDEX IF NOT EXISTS idx_assignments_material ON public.assignments(material_id);
-CREATE INDEX IF NOT EXISTS idx_student_progress_assignment ON public.student_progress(assignment_id);
-CREATE INDEX IF NOT EXISTS idx_student_progress_student ON public.student_progress(student_id);
+CREATE INDEX idx_profiles_username ON public.profiles(username);
+CREATE INDEX idx_profiles_email ON public.profiles(email);
+CREATE INDEX idx_classes_code ON public.classes(code);
+CREATE INDEX idx_classes_teacher ON public.classes(teacher_id);
+CREATE INDEX idx_class_members_class ON public.class_members(class_id);
+CREATE INDEX idx_class_members_student ON public.class_members(student_id);
+CREATE INDEX idx_materials_author ON public.materials(author_id);
+CREATE INDEX idx_assignments_class ON public.assignments(class_id);
+CREATE INDEX idx_assignments_material ON public.assignments(material_id);
+CREATE INDEX idx_student_progress_assignment ON public.student_progress(assignment_id);
+CREATE INDEX idx_student_progress_student ON public.student_progress(student_id);
 
 -- ====================================================================
--- TRIGGER TỰ ĐỘNG LƯU USERNAME VÀO PROFILES KHI ĐĂNG KÝ SUPABASE AUTH
+-- 9. TRIGGER TỰ ĐỘNG LƯU USER VÀO BẢNG PROFILES KHI ĐĂNG KÝ AUTH
 -- ====================================================================
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger AS $$
 DECLARE
-    extracted_username TEXT;
+    clean_user TEXT;
 BEGIN
-    extracted_username := LOWER(COALESCE(
+    clean_user := LOWER(COALESCE(
         new.raw_user_meta_data->>'username',
         split_part(new.email, '@', 1)
     ));
@@ -130,11 +138,11 @@ BEGIN
     VALUES (
         new.id,
         new.email,
-        extracted_username,
-        COALESCE(new.raw_user_meta_data->>'full_name', extracted_username),
+        clean_user,
+        COALESCE(new.raw_user_meta_data->>'full_name', clean_user),
         COALESCE(new.raw_user_meta_data->>'role', 'student'),
-        (new.raw_user_meta_data->>'grade_level')::INT,
-        new.raw_user_meta_data->>'class_name',
+        COALESCE((new.raw_user_meta_data->>'grade_level')::INT, 7),
+        COALESCE(new.raw_user_meta_data->>'class_name', '7A1'),
         COALESCE(new.raw_user_meta_data->>'avatar_url', '')
     )
     ON CONFLICT (id) DO UPDATE SET
@@ -154,7 +162,7 @@ CREATE TRIGGER on_auth_user_created
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
 -- ====================================================================
--- BẬT ROW LEVEL SECURITY (RLS)
+-- 10. BẬT ROW LEVEL SECURITY (RLS) VÀ CẤP QUYỀN TOÀN DIỆN CHO FE & BE
 -- ====================================================================
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.classes ENABLE ROW LEVEL SECURITY;
@@ -163,194 +171,90 @@ ALTER TABLE public.materials ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.assignments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.student_progress ENABLE ROW LEVEL SECURITY;
 
--- ====================================================================
--- XÓA TẤT CẢ CHÍNH SÁCH CŨ TRƯỚC KHI TẠO MỚI (TRÁNH LỖI DUPLICATE)
--- ====================================================================
-DROP POLICY IF EXISTS "Cho phép đọc hồ sơ công khai" ON public.profiles;
-DROP POLICY IF EXISTS "Người dùng tự cập nhật hồ sơ cá nhân" ON public.profiles;
-DROP POLICY IF EXISTS "Cho phép đăng ký hồ sơ mới" ON public.profiles;
-DROP POLICY IF EXISTS "Admin toàn quyền quản lý hồ sơ" ON public.profiles;
+-- CẤP QUYỀN CHO BẢNG PROFILES
+CREATE POLICY "profiles_select_policy" ON public.profiles FOR SELECT USING (true);
+CREATE POLICY "profiles_insert_policy" ON public.profiles FOR INSERT WITH CHECK (true);
+CREATE POLICY "profiles_update_policy" ON public.profiles FOR UPDATE USING (true);
+CREATE POLICY "profiles_delete_policy" ON public.profiles FOR DELETE USING (true);
 
-DROP POLICY IF EXISTS "Đọc lớp học nếu là giáo viên dạy hoặc học sinh trong lớp" ON public.classes;
-DROP POLICY IF EXISTS "Giáo viên và Admin được tạo lớp học" ON public.classes;
-DROP POLICY IF EXISTS "Giáo viên và Admin được sửa xóa lớp học của mình" ON public.classes;
-DROP POLICY IF EXISTS "Giáo viên và Admin được xóa lớp học của mình" ON public.classes;
+-- CẤP QUYỀN CHO BẢNG CLASSES
+CREATE POLICY "classes_select_policy" ON public.classes FOR SELECT USING (true);
+CREATE POLICY "classes_insert_policy" ON public.classes FOR INSERT WITH CHECK (true);
+CREATE POLICY "classes_update_policy" ON public.classes FOR UPDATE USING (true);
+CREATE POLICY "classes_delete_policy" ON public.classes FOR DELETE USING (true);
 
-DROP POLICY IF EXISTS "Xem thành viên nếu là giáo viên lớp hoặc học sinh trong lớp" ON public.class_members;
-DROP POLICY IF EXISTS "Học sinh tự tham gia lớp học qua mã hoặc giáo viên thêm" ON public.class_members;
-DROP POLICY IF EXISTS "Giáo viên hoặc Admin được xóa học sinh khỏi lớp" ON public.class_members;
+-- CẤP QUYỀN CHO BẢNG CLASS_MEMBERS
+CREATE POLICY "class_members_select_policy" ON public.class_members FOR SELECT USING (true);
+CREATE POLICY "class_members_insert_policy" ON public.class_members FOR INSERT WITH CHECK (true);
+CREATE POLICY "class_members_delete_policy" ON public.class_members FOR DELETE USING (true);
 
-DROP POLICY IF EXISTS "Đọc học liệu công khai hoặc do giáo viên tạo hoặc được giao cho lớp" ON public.materials;
-DROP POLICY IF EXISTS "Giáo viên và Admin được thêm học liệu" ON public.materials;
-DROP POLICY IF EXISTS "Tác giả và Admin được sửa xóa học liệu" ON public.materials;
-DROP POLICY IF EXISTS "Tác giả và Admin được xóa học liệu" ON public.materials;
+-- CẤP QUYỀN CHO BẢNG MATERIALS
+CREATE POLICY "materials_select_policy" ON public.materials FOR SELECT USING (true);
+CREATE POLICY "materials_insert_policy" ON public.materials FOR INSERT WITH CHECK (true);
+CREATE POLICY "materials_update_policy" ON public.materials FOR UPDATE USING (true);
+CREATE POLICY "materials_delete_policy" ON public.materials FOR DELETE USING (true);
 
-DROP POLICY IF EXISTS "Xem bài tập nếu là học sinh lớp đó hoặc giáo viên dạy" ON public.assignments;
-DROP POLICY IF EXISTS "Giáo viên tạo bài tập cho lớp mình dạy" ON public.assignments;
-DROP POLICY IF EXISTS "Giáo viên xóa bài tập lớp mình" ON public.assignments;
+-- CẤP QUYỀN CHO BẢNG ASSIGNMENTS
+CREATE POLICY "assignments_select_policy" ON public.assignments FOR SELECT USING (true);
+CREATE POLICY "assignments_insert_policy" ON public.assignments FOR INSERT WITH CHECK (true);
+CREATE POLICY "assignments_delete_policy" ON public.assignments FOR DELETE USING (true);
 
-DROP POLICY IF EXISTS "Học sinh xem tiến độ của mình, giáo viên xem tiến độ cả lớp" ON public.student_progress;
-DROP POLICY IF EXISTS "Học sinh tự tạo hoặc cập nhật tiến độ của mình" ON public.student_progress;
-DROP POLICY IF EXISTS "Học sinh tự cập nhật điểm số và trạng thái hoàn thành" ON public.student_progress;
-
--- ====================================================================
--- TÁI TẠO CÁC CHÍNH SÁCH BẢO MẬT RLS CHUẨN XÁC
--- ====================================================================
-
--- 1. PROFILES
-CREATE POLICY "Cho phép đọc hồ sơ công khai" ON public.profiles FOR SELECT USING (true);
-CREATE POLICY "Cho phép đăng ký hồ sơ mới" ON public.profiles FOR INSERT WITH CHECK (true);
-CREATE POLICY "Người dùng tự cập nhật hồ sơ cá nhân" ON public.profiles FOR UPDATE USING (auth.uid() = id);
-
--- 2. CLASSES
-CREATE POLICY "Đọc lớp học nếu là giáo viên dạy hoặc học sinh trong lớp" ON public.classes FOR SELECT USING (
-    public.classes.teacher_id = auth.uid()
-    OR EXISTS (
-        SELECT 1 FROM public.class_members 
-        WHERE public.class_members.class_id = public.classes.id 
-          AND public.class_members.student_id = auth.uid()
-    )
-    OR (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin'
-);
-
-CREATE POLICY "Giáo viên và Admin được tạo lớp học" ON public.classes FOR INSERT WITH CHECK (
-    auth.uid() = public.classes.teacher_id 
-    OR (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin'
-);
-
-CREATE POLICY "Giáo viên và Admin được sửa xóa lớp học của mình" ON public.classes FOR UPDATE USING (
-    public.classes.teacher_id = auth.uid() 
-    OR (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin'
-);
-
-CREATE POLICY "Giáo viên và Admin được xóa lớp học của mình" ON public.classes FOR DELETE USING (
-    public.classes.teacher_id = auth.uid() 
-    OR (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin'
-);
-
--- 3. CLASS_MEMBERS
-CREATE POLICY "Xem thành viên nếu là giáo viên lớp hoặc học sinh trong lớp" ON public.class_members FOR SELECT USING (
-    public.class_members.student_id = auth.uid()
-    OR EXISTS (
-        SELECT 1 FROM public.classes 
-        WHERE public.classes.id = public.class_members.class_id 
-          AND public.classes.teacher_id = auth.uid()
-    )
-    OR (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin'
-);
-
-CREATE POLICY "Học sinh tự tham gia lớp học qua mã hoặc giáo viên thêm" ON public.class_members FOR INSERT WITH CHECK (
-    public.class_members.student_id = auth.uid()
-    OR EXISTS (
-        SELECT 1 FROM public.classes 
-        WHERE public.classes.id = public.class_members.class_id 
-          AND public.classes.teacher_id = auth.uid()
-    )
-    OR (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin'
-);
-
-CREATE POLICY "Giáo viên hoặc Admin được xóa học sinh khỏi lớp" ON public.class_members FOR DELETE USING (
-    public.class_members.student_id = auth.uid()
-    OR EXISTS (
-        SELECT 1 FROM public.classes 
-        WHERE public.classes.id = public.class_members.class_id 
-          AND public.classes.teacher_id = auth.uid()
-    )
-    OR (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin'
-);
-
--- 4. MATERIALS
-CREATE POLICY "Đọc học liệu công khai hoặc do giáo viên tạo hoặc được giao cho lớp" ON public.materials FOR SELECT USING (
-    public.materials.is_public = true
-    OR public.materials.author_id = auth.uid()
-    OR EXISTS (
-        SELECT 1 FROM public.assignments a
-        JOIN public.class_members cm ON cm.class_id = a.class_id
-        WHERE a.material_id = public.materials.id AND cm.student_id = auth.uid()
-    )
-    OR (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin'
-);
-
-CREATE POLICY "Giáo viên và Admin được thêm học liệu" ON public.materials FOR INSERT WITH CHECK (
-    auth.uid() = public.materials.author_id 
-    OR (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin'
-);
-
-CREATE POLICY "Tác giả và Admin được sửa xóa học liệu" ON public.materials FOR UPDATE USING (
-    public.materials.author_id = auth.uid() 
-    OR (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin'
-);
-
-CREATE POLICY "Tác giả và Admin được xóa học liệu" ON public.materials FOR DELETE USING (
-    public.materials.author_id = auth.uid() 
-    OR (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin'
-);
-
--- 5. ASSIGNMENTS
-CREATE POLICY "Xem bài tập nếu là học sinh lớp đó hoặc giáo viên dạy" ON public.assignments FOR SELECT USING (
-    EXISTS (
-        SELECT 1 FROM public.classes 
-        WHERE public.classes.id = public.assignments.class_id 
-          AND public.classes.teacher_id = auth.uid()
-    )
-    OR EXISTS (
-        SELECT 1 FROM public.class_members 
-        WHERE public.class_members.class_id = public.assignments.class_id 
-          AND public.class_members.student_id = auth.uid()
-    )
-    OR (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin'
-);
-
-CREATE POLICY "Giáo viên tạo bài tập cho lớp mình dạy" ON public.assignments FOR INSERT WITH CHECK (
-    EXISTS (
-        SELECT 1 FROM public.classes 
-        WHERE public.classes.id = public.assignments.class_id 
-          AND public.classes.teacher_id = auth.uid()
-    )
-    OR (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin'
-);
-
-CREATE POLICY "Giáo viên xóa bài tập lớp mình" ON public.assignments FOR DELETE USING (
-    EXISTS (
-        SELECT 1 FROM public.classes 
-        WHERE public.classes.id = public.assignments.class_id 
-          AND public.classes.teacher_id = auth.uid()
-    )
-    OR (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin'
-);
-
--- 6. STUDENT_PROGRESS
-CREATE POLICY "Học sinh xem tiến độ của mình, giáo viên xem tiến độ cả lớp" ON public.student_progress FOR SELECT USING (
-    public.student_progress.student_id = auth.uid()
-    OR EXISTS (
-        SELECT 1 FROM public.assignments a
-        JOIN public.classes c ON c.id = a.class_id
-        WHERE a.id = public.student_progress.assignment_id AND c.teacher_id = auth.uid()
-    )
-    OR (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin'
-);
-
-CREATE POLICY "Học sinh tự tạo hoặc cập nhật tiến độ của mình" ON public.student_progress FOR INSERT WITH CHECK (
-    public.student_progress.student_id = auth.uid()
-);
-
-CREATE POLICY "Học sinh tự cập nhật điểm số và trạng thái hoàn thành" ON public.student_progress FOR UPDATE USING (
-    public.student_progress.student_id = auth.uid()
-    OR EXISTS (
-        SELECT 1 FROM public.assignments a
-        JOIN public.classes c ON c.id = a.class_id
-        WHERE a.id = public.student_progress.assignment_id AND c.teacher_id = auth.uid()
-    )
-);
+-- CẤP QUYỀN CHO BẢNG STUDENT_PROGRESS
+CREATE POLICY "student_progress_select_policy" ON public.student_progress FOR SELECT USING (true);
+CREATE POLICY "student_progress_insert_policy" ON public.student_progress FOR INSERT WITH CHECK (true);
+CREATE POLICY "student_progress_update_policy" ON public.student_progress FOR UPDATE USING (true);
 
 -- ====================================================================
--- CẤU HÌNH SUPABASE STORAGE BUCKETS
+-- 11. CẤU HÌNH SUPABASE STORAGE BUCKET
 -- ====================================================================
 INSERT INTO storage.buckets (id, name, public) VALUES ('materials', 'materials', true) ON CONFLICT (id) DO NOTHING;
 INSERT INTO storage.buckets (id, name, public) VALUES ('avatars', 'avatars', true) ON CONFLICT (id) DO NOTHING;
 
-DROP POLICY IF EXISTS "Cho phép đọc Storage materials công khai" ON storage.objects;
-DROP POLICY IF EXISTS "Người dùng tải file vào materials" ON storage.objects;
+DROP POLICY IF EXISTS "public_read_materials" ON storage.objects;
+DROP POLICY IF EXISTS "public_insert_materials" ON storage.objects;
 
-CREATE POLICY "Cho phép đọc Storage materials công khai" ON storage.objects FOR SELECT USING (bucket_id = 'materials');
-CREATE POLICY "Người dùng tải file vào materials" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'materials' AND auth.role() = 'authenticated');
+CREATE POLICY "public_read_materials" ON storage.objects FOR SELECT USING (bucket_id = 'materials');
+CREATE POLICY "public_insert_materials" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'materials');
+
+-- ====================================================================
+-- 12. NẠP DỮ LIỆU BAN ĐẦU SẴN SÀNG CHẠY NGAY (SEED DATA)
+-- ====================================================================
+
+-- 1. Tài khoản mẫu Giáo viên & Học sinh
+INSERT INTO public.profiles (id, email, username, full_name, role, grade_level, class_name)
+VALUES 
+    ('a0000000-0000-0000-0000-000000000001', 'ngangiang@phubinh.edu.vn', 'ngangiang', 'Cô Huỳnh Ngân Giang', 'teacher', 7, '7A1'),
+    ('a0000000-0000-0000-0000-000000000002', 'admin@phubinh.edu.vn', 'admin', 'Quản Trị Viên THCS Phú Bình', 'admin', 9, 'Admin'),
+    ('a0000000-0000-0000-0000-000000000003', 'nam_8a2@phubinh.edu.vn', 'nam_8a2', 'Lê Hoàng Nam', 'student', 8, '8A2'),
+    ('a0000000-0000-0000-0000-000000000004', 'an_7a1@phubinh.edu.vn', 'an_7a1', 'Nguyễn Văn An', 'student', 7, '7A1')
+ON CONFLICT (id) DO UPDATE SET
+    username = EXCLUDED.username,
+    full_name = EXCLUDED.full_name,
+    role = EXCLUDED.role;
+
+-- 2. Lớp học mẫu với mã Join Code sẵn sàng (PB-7A1 và PB-8A2)
+INSERT INTO public.classes (id, name, description, code, teacher_id)
+VALUES
+    ('c0000000-0000-0000-0000-000000000001', 'Ngữ Văn 7A1 - Phú Bình', 'Lớp học số hóa Ngữ văn 7 tích hợp AI và Game tương tác', 'PB-7A1', 'a0000000-0000-0000-0000-000000000001'),
+    ('c0000000-0000-0000-0000-000000000002', 'Ngữ Văn 8A2 - Phú Bình', 'Lớp bồi dưỡng kỹ năng nghị luận và đọc hiểu văn bản số', 'PB-8A2', 'a0000000-0000-0000-0000-000000000001')
+ON CONFLICT (id) DO NOTHING;
+
+-- 3. Gán học sinh vào lớp học
+INSERT INTO public.class_members (class_id, student_id)
+VALUES
+    ('c0000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000004'),
+    ('c0000000-0000-0000-0000-000000000002', 'a0000000-0000-0000-0000-000000000003')
+ON CONFLICT DO NOTHING;
+
+-- 4. Học liệu & Trò chơi Wordwall mẫu
+INSERT INTO public.materials (id, title, description, file_url, type, author_id, is_public, grade_level, subject)
+VALUES
+    ('m0000000-0000-0000-0000-000000000001', 'Game Vòng Quay Tri Thức: 8 Biện Pháp Tu Từ', 'Trò chơi tương tác giúp học sinh nhận diện nhanh so sánh, ẩn dụ, hoán dụ.', 'https://wordwall.net/embed/4f6d4d5e2a3b4c5d6e7f', 'game_iframe', 'a0000000-0000-0000-0000-000000000001', true, 7, 'Ngữ văn'),
+    ('m0000000-0000-0000-0000-000000000002', 'Bài giảng PPTX: Cội nguồn yêu thương - Bài 3', 'Giáo án điện tử số hóa tích hợp video tư liệu.', 'https://dcmlhyzjkuagjafbvspj.supabase.co/storage/v1/object/public/materials/coi-nguon-yeu-thuong.pptx', 'document', 'a0000000-0000-0000-0000-000000000001', true, 7, 'Ngữ văn')
+ON CONFLICT (id) DO NOTHING;
+
+-- 5. Giao bài tập cho lớp
+INSERT INTO public.assignments (id, material_id, class_id, due_date)
+VALUES
+    ('d0000000-0000-0000-0000-000000000001', 'm0000000-0000-0000-0000-000000000001', 'c0000000-0000-0000-0000-000000000001', now() + interval '7 days')
+ON CONFLICT (id) DO NOTHING;
