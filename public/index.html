@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hành Trình Số - THCS Phú Bình | Cổng Học Tập & E-Learning</title>
+    <meta name="description" content="Cổng Hành Trình Số (hanhtrinhso.docbuoc.vn) - Hệ sinh thái chuyển đổi số giáo dục trường THCS Phú Bình của sáng lập viên Huỳnh Ngân Giang">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800;900&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="theme-light">
+    <!-- TOP NOTIFICATION BANNER -->
+    <header class="top-nav-bar" id="headerNav">
+        <div class="nav-container">
+            <div class="brand-logo" onclick="switchTab('trangchu')">
+                <div class="logo-icon-wrapper">
+                    <i class="fa-solid fa-graduation-cap"></i>
+                </div>
+                <div class="brand-text">
+                    <span class="brand-title">HÀNH TRÌNH SỐ</span>
+                    <span class="brand-sub">THCS PHÚ BÌNH • hanhtrinhso.docbuoc.vn</span>
+                </div>
+            </div>
+
+            <nav class="nav-links">
+                <button class="nav-item active" data-tab="trangchu" onclick="switchTab('trangchu')">
+                    <i class="fa-solid fa-house"></i> <span>Trang chủ</span>
+                </button>
+                <button class="nav-item" data-tab="baigiang" onclick="switchTab('baigiang')">
+                    <i class="fa-solid fa-chalkboard-user"></i> <span>Bài giảng</span>
+                </button>
+                <button class="nav-item" data-tab="hoclieu" onclick="switchTab('hoclieu')">
+                    <i class="fa-solid fa-book-open-reader"></i> <span>Học liệu Số</span>
+                </button>
+                <button class="nav-item" data-tab="baitap" onclick="switchTab('baitap')">
+                    <i class="fa-solid fa-pen-ruler"></i> <span>Phiếu bài tập</span>
+                </button>
+                <button class="nav-item" data-tab="nopbai" onclick="switchTab('nopbai')">
+                    <i class="fa-solid fa-cloud-arrow-up"></i> <span>Cổng nộp bài</span>
+                </button>
+                <button class="nav-item" data-tab="game" onclick="switchTab('game')">
+                    <i class="fa-solid fa-gamepad"></i> <span>Game Ôn tập</span>
+                </button>
+                <button class="nav-item" data-tab="hoidap" onclick="switchTab('hoidap')">
+                    <i class="fa-solid fa-robot"></i> <span>Trợ lý AI</span>
+                </button>
+                <button class="nav-item vip-btn" data-tab="khovip" onclick="switchTab('khovip')">
+                    <i class="fa-solid fa-gem"></i> <span>Kho VIP</span>
+                </button>
+                <button class="nav-item arch-btn" data-tab="kientruc" onclick="switchTab('kientruc')">
+                    <i class="fa-solid fa-network-wired"></i> <span>Sơ đồ 4 Tầng</span>
+                </button>
+            </nav>
+
+            <div class="nav-actions">
+                <button class="btn-icon notif-trigger" id="btnNotif" onclick="toggleNotificationPanel()" title="Thông báo mới">
+                    <i class="fa-regular fa-bell"></i>
+                    <span class="badge-dot" id="notifBadge">3</span>
+                </button>
+                <div class="user-auth-slot" id="userAuthSlot">
+                    <button class="btn-login-sso" onclick="openLoginModal()">
+                        <i class="fa-brands fa-google"></i>
+                        <span>Đăng nhập Google</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- FLOATING NOTIFICATION POPUP -->
+    <div class="notif-dropdown" id="notifDropdown">
+        <div class="notif-header">
+            <h4><i class="fa-solid fa-bell"></i> Thông báo tức thời (Real-time)</h4>
+            <span class="clear-notif" onclick="clearNotifications()">Đánh dấu đã đọc</span>
+        </div>
+        <div class="notif-list" id="notifList">
+            <div class="notif-item unread">
+                <div class="notif-icon bg-blue"><i class="fa-solid fa-file-powerpoint"></i></div>
+                <div class="notif-content">
+                    <p class="notif-text"><strong>Bài giảng Khối 7 mới:</strong> "Tri thức ngữ văn bài 3 - Cội nguồn yêu thương" vừa được tải lên.</p>
+                    <span class="notif-time">10 phút trước</span>
+                </div>
+            </div>
+            <div class="notif-item unread">
+                <div class="notif-icon bg-emerald"><i class="fa-solid fa-trophy"></i></div>
+                <div class="notif-content">
+                    <p class="notif-text"><strong>Bảng xếp hạng Game tuần:</strong> Học sinh lớp 8A2 vừa đạt Top 1 tuần với 4,250 điểm!</p>
+                    <span class="notif-time">1 giờ trước</span>
+                </div>
+            </div>
+            <div class="notif-item unread">
+                <div class="notif-icon bg-amber"><i class="fa-solid fa-bullhorn"></i></div>
+                <div class="notif-content">
+                    <p class="notif-text"><strong>Thông báo THCS Phú Bình:</strong> Lịch nộp sản phẩm sáng tạo số hạn cuối vào Chủ Nhật tuần này.</p>
+                    <span class="notif-time">Hôm nay</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN APP CONTAINER -->
+    <main class="app-main-viewport">
+        <!-- ==================== TAB 1: TRANG CHỦ ==================== -->
+        <section class="tab-pane active" id="pane-trangchu">
+            <!-- HERO BANNER -->
+            <div class="hero-section">
+                <div class="hero-glow-1"></div>
+                <div class="hero-glow-2"></div>
+                <div class="hero-content">
+                    <div class="hero-badge">
+                        <span class="pulse-ring"></span>
+                        <i class="fa-solid fa-seedling"></i> Hệ Sinh Thái Chuyển Đổi Số Giáo Dục
+                    </div>
+                    <h1 class="hero-title">
+                        HÀNH TRÌNH SỐ <br/>
+                        <span class="gradient-text">TRƯỜNG THCS PHÚ BÌNH</span>
+                    </h1>
+                    <p class="hero-desc">
+                        Không gian số hóa bài giảng, học liệu thông minh, tích hợp trợ lý AI 24/7 và hệ sinh thái học tập tương tác đa phương tiện. 
+                        Được sáng lập và điều hành bởi <strong>Huỳnh Ngân Giang</strong>.
+                    </p>
+                    <div class="hero-cta-group">
+                        <button class="btn-primary-hero" onclick="switchTab('baigiang')">
+                            <i class="fa-solid fa-compass"></i> Khám phá Bài giảng
+                        </button>
+                        <button class="btn-secondary-hero" onclick="switchTab('hoidap')">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i> Hỏi Trợ Lý AI 24/7
+                        </button>
+                        <button class="btn-outline-hero" onclick="switchTab('kientruc')">
+                            <i class="fa-solid fa-diagram-project"></i> Xem Kiến Trúc 4 Tầng
+                        </button>
+                    </div>
+
+                    <!-- HERO METRICS -->
+                    <div class="hero-stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-num" id="statLectures">128+</div>
+                            <div class="stat-label">Bài giảng Khối 6-9</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-num">100%</div>
+                            <div class="stat-label">Tích hợp AI & Số hóa</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-num">24/7</div>
+                            <div class="stat-label">Trợ lý AI Trực Tuyến</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-num" id="statStudents">1,450+</div>
+                            <div class="stat-label">Học sinh Phú Bình</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- QUICK ACCESS TILES (11 CLIENT NODES OVERVIEW) -->
+            <div class="section-container">
+                <div class="section-header">
+                    <div>
+                        <h2 class="section-title"><i class="fa-solid fa-cubes"></i> 11 Cổng Trải Nghiệm Học Tập Tương Tác</h2>
+                        <p class="section-subtitle">Tất cả các module thành phần được kết nối qua API Gateway an toàn</p>
+                    </div>
+                </div>
+
+                <div class="features-grid">
+                    <div class="feature-tile card-hover" onclick="switchTab('baigiang')">
+                        <div class="tile-icon icon-blue"><i class="fa-solid fa-file-powerpoint"></i></div>
+                        <h3>📽️ Bài giảng & E-learning</h3>
+                        <p>Lưu trữ bài giảng DOCX, PPTX tích hợp AI theo từng khối lớp 6, 7, 8, 9 chuẩn CT GDPT 2018.</p>
+                        <span class="tile-link">Truy cập bài học <i class="fa-solid fa-arrow-right"></i></span>
+                    </div>
+
+                    <div class="feature-tile card-hover" onclick="switchTab('hoclieu')">
+                        <div class="tile-icon icon-emerald"><i class="fa-solid fa-podcast"></i></div>
+                        <h3>📚 Học liệu Số & Podcast</h3>
+                        <p>Phim giáo dục, sổ tay tri thức và podcast audio tóm tắt tác phẩm văn học nhanh chóng.</p>
+                        <span class="tile-link">Nghe & xem ngay <i class="fa-solid fa-arrow-right"></i></span>
+                    </div>
+
+                    <div class="feature-tile card-hover" onclick="switchTab('baitap')">
+                        <div class="tile-icon icon-indigo"><i class="fa-solid fa-list-check"></i></div>
+                        <h3>📝 Phiếu Bài tập Trắc nghiệm</h3>
+                        <p>Phiếu học tập tương tác tự động chấm điểm, gợi ý giải thích chi tiết bằng AI.</p>
+                        <span class="tile-link">Làm bài tập <i class="fa-solid fa-arrow-right"></i></span>
+                    </div>
+
+                    <div class="feature-tile card-hover" onclick="switchTab('nopbai')">
+                        <div class="tile-icon icon-cyan"><i class="fa-solid fa-cloud-arrow-up"></i></div>
+                        <h3>📤 Cổng nộp Sản phẩm</h3>
+                        <p>Nộp bài linh hoạt qua mã QR, tải file S3, link Padlet, Google Drive hoặc liên kết Zalo.</p>
+                        <span class="tile-link">Nộp bài ngay <i class="fa-solid fa-arrow-right"></i></span>
+                    </div>
+
+                    <div class="feature-tile card-hover" onclick="switchTab('game')">
+                        <div class="tile-icon icon-amber"><i class="fa-solid fa-gamepad"></i></div>
+                        <h3>🎮 Game Giáo dục Tương tác</h3>
+                        <p>Đấu trí kiến thức, vòng quay may mắn và minigame ôn tập rèn luyện tư duy sinh động.</p>
+                        <span class="tile-link">Chơi ôn bài <i class="fa-solid fa-arrow-right"></i></span>
+                    </div>
+
+                    <div class="feature-tile card-hover" onclick="switchTab('hoidap')">
+                        <div class="tile-icon icon-rose"><i class="fa-solid fa-robot"></i></div>
+                        <h3>🤖 Trợ lý AI Hỏi-Đáp 24/7</h3>
+                        <p>Chatbot thông minh hỗ trợ giải đáp thắc mắc phương pháp làm bài, ngữ liệu và kiến thức mở rộng.</p>
+                        <span class="tile-link">Trò chuyện với AI <i class="fa-solid fa-arrow-right"></i></span>
+                    </div>
+
+                    <div class="feature-tile card-hover" onclick="switchTab('khovip')">
+                        <div class="tile-icon icon-gold"><i class="fa-solid fa-crown"></i></div>
+                        <h3>💎 Kho Tài liệu VIP</h3>
+                        <p>Khu vực mở khóa tài liệu nâng cao, chuyên đề học sinh giỏi và trợ lý AI đặc quyền bằng mã voucher.</p>
+                        <span class="tile-link">Nhập mã VIP <i class="fa-solid fa-arrow-right"></i></span>
+                    </div>
+
+                    <div class="feature-tile card-hover" onclick="switchTab('bangtin')">
+                        <div class="tile-icon icon-teal"><i class="fa-solid fa-newspaper"></i></div>
+                        <h3>📰 Bảng tin & Hướng nghiệp</h3>
+                        <p>Cập nhật tin tức giáo dục, văn bản chỉ đạo và định hướng chọn trường, nghề nghiệp sớm.</p>
+                        <span class="tile-link">Xem bảng tin <i class="fa-solid fa-arrow-right"></i></span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== TAB 2: BÀI GIẢNG & E-LEARNING ==================== -->
+        <section class="tab-pane" id="pane-baigiang">
+            <div class="section-container">
+                <div class="section-header">
+                    <div>
+                        <h2 class="section-title"><i class="fa-solid fa-chalkboard-user"></i> Không Gian Bài Giảng & E-Learning</h2>
+                        <p class="section-subtitle">Kho bài giảng PPTX, DOCX được tối ưu hóa theo chương trình giáo dục phổ thông</p>
+                    </div>
+                    <!-- GRADE FILTER TABS -->
+                    <div class="filter-pill-group">
+                        <button class="pill-btn active" onclick="filterLectures('all')">Tất cả Khối</button>
+                        <button class="pill-btn" onclick="filterLectures(6)">Khối 6</button>
+                        <button class="pill-btn" onclick="filterLectures(7)">Khối 7</button>
+                        <button class="pill-btn" onclick="filterLectures(8)">Khối 8</button>
+                        <button class="pill-btn" onclick="filterLectures(9)">Khối 9</button>
+                    </div>
+                </div>
+
+                <div class="lecture-grid" id="lectureGrid">
+                    <!-- DYNAMIC CARDS VIA JS -->
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== TAB 3: HỌC LIỆU SỐ & PODCAST ==================== -->
+        <section class="tab-pane" id="pane-hoclieu">
+            <div class="section-container">
+                <div class="section-header">
+                    <div>
+                        <h2 class="section-title"><i class="fa-solid fa-book-open-reader"></i> Học Liệu Số Đa Phương Tiện</h2>
+                        <p class="section-subtitle">Phim ngắn giáo dục, podcast giọng đọc chuẩn và sổ tay tri thức tương tác</p>
+                    </div>
+                </div>
+
+                <div class="media-container-grid">
+                    <!-- PODCAST PLAYER CARD -->
+                    <div class="media-card podcast-player-card">
+                        <div class="podcast-badge"><i class="fa-solid fa-waveform-lines"></i> Podcast Học Đường</div>
+                        <div class="podcast-cover">
+                            <i class="fa-solid fa-headphones-simple"></i>
+                        </div>
+                        <h3 id="currentPodTitle">Tập 12: Phân tích vẻ đẹp nhân vật Lão Hạc - Nam Cao</h3>
+                        <p class="podcast-author">Người đọc: Cô Huỳnh Ngân Giang • Thời lượng: 04:35</p>
+
+                        <!-- AUDIO CONTROLS -->
+                        <div class="audio-progress-bar" onclick="seekAudio(event)">
+                            <div class="progress-fill" id="audioProgress"></div>
+                        </div>
+                        <div class="audio-time-row">
+                            <span id="currTime">01:15</span>
+                            <span id="durTime">04:35</span>
+                        </div>
+                        <div class="player-buttons">
+                            <button class="ctrl-btn" onclick="prevTrack()"><i class="fa-solid fa-backward-step"></i></button>
+                            <button class="ctrl-btn-play" id="btnPlayPause" onclick="togglePlay()"><i class="fa-solid fa-play"></i></button>
+                            <button class="ctrl-btn" onclick="nextTrack()"><i class="fa-solid fa-forward-step"></i></button>
+                        </div>
+
+                        <!-- TRACKLIST -->
+                        <div class="podcast-playlist">
+                            <h4><i class="fa-solid fa-list-ul"></i> Danh sách Podcast ôn tập</h4>
+                            <div class="playlist-item active" onclick="selectPodcast(0)">
+                                <span>01. Lão Hạc - Nghệ thuật miêu tả tâm lý</span>
+                                <small>04:35</small>
+                            </div>
+                            <div class="playlist-item" onclick="selectPodcast(1)">
+                                <span>02. Chiếc lược ngà - Tình phụ tử thiêng liêng</span>
+                                <small>05:12</small>
+                            </div>
+                            <div class="playlist-item" onclick="selectPodcast(2)">
+                                <span>03. Mùa xuân nho nhỏ - Khát vọng cống hiến</span>
+                                <small>03:48</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- DIGITAL HANDBOOK & VIDEO -->
+                    <div class="media-card handbook-card">
+                        <div class="card-header-inner">
+                            <h3><i class="fa-solid fa-book-bookmark"></i> Sổ Tay Tri Thức Số Khối 6 - 9</h3>
+                            <span class="badge-tag">Tương tác</span>
+                        </div>
+                        <p class="text-muted">Tổng hợp kiến thức trọng tâm tiếng Việt, phương thức biểu đạt, các biện pháp tu từ.</p>
+
+                        <div class="handbook-items-list">
+                            <div class="handbook-row">
+                                <div class="hb-icon"><i class="fa-solid fa-feather-pointed"></i></div>
+                                <div class="hb-info">
+                                    <h4>Sơ đồ tư duy 8 Biện pháp tu từ</h4>
+                                    <p>Ẩn dụ, hoán dụ, so sánh, nhân hóa, điệp ngữ...</p>
+                                </div>
+                                <button class="btn-sm-action" onclick="viewHandbookModal('tututu')"><i class="fa-solid fa-eye"></i> Xem</button>
+                            </div>
+
+                            <div class="handbook-row">
+                                <div class="hb-icon"><i class="fa-solid fa-pen-nib"></i></div>
+                                <div class="hb-info">
+                                    <h4>Công thức viết đoạn văn Nghị luận Xã hội 200 chữ</h4>
+                                    <p>Cấu trúc 5 bước: Giải thích - Phân tích - Chứng minh - Phản biện - Bài học</p>
+                                </div>
+                                <button class="btn-sm-action" onclick="viewHandbookModal('nghiluan')"><i class="fa-solid fa-eye"></i> Xem</button>
+                            </div>
+
+                            <div class="handbook-row">
+                                <div class="hb-icon"><i class="fa-solid fa-clapperboard"></i></div>
+                                <div class="hb-info">
+                                    <h4>Phim Giáo dục Số: "Khám phá Văn học Dân gian"</h4>
+                                    <p>Tư liệu hoạt họa sinh động hỗ trợ bài học khối 6</p>
+                                </div>
+                                <button class="btn-sm-action" onclick="viewHandbookModal('phim')"><i class="fa-solid fa-play"></i> Xem Phim</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== TAB 4: PHIẾU BÀI TẬP ==================== -->
+        <section class="tab-pane" id="pane-baitap">
+            <div class="section-container">
+                <div class="quiz-workspace">
+                    <div class="quiz-header-card">
+                        <div class="quiz-info">
+                            <span class="badge-tag-quiz">Khối 7 • Bài kiểm tra 15 phút</span>
+                            <h2>Phiếu Học Tập Tương Tác: "Tri Thức Ngữ Văn & Tiếng Việt"</h2>
+                            <p>Hãy hoàn thành 3 câu hỏi trắc nghiệm dưới đây để củng cố kiến thức. Hệ thống sẽ tự động chấm điểm và phản hồi ngay lập tức.</p>
+                        </div>
+                        <div class="quiz-timer-box">
+                            <div class="timer-label">Thời gian còn lại</div>
+                            <div class="timer-countdown" id="quizTimer">14:50</div>
+                        </div>
+                    </div>
+
+                    <div class="quiz-body-card" id="quizQuestionsContainer">
+                        <!-- QUESTION 1 -->
+                        <div class="question-block" data-q="1">
+                            <div class="q-title"><strong>Câu 1:</strong> Biện pháp tu từ nào được sử dụng trong câu thơ: <em>"Bàn tay mẹ chắn bão giông / Che cho con ấm những ngày giá băng"</em>?</div>
+                            <div class="options-grid">
+                                <label class="option-label">
+                                    <input type="radio" name="q1" value="A">
+                                    <span>A. Hoán dụ (Lấy bộ phận chỉ toàn thể)</span>
+                                </label>
+                                <label class="option-label">
+                                    <input type="radio" name="q1" value="B">
+                                    <span>B. Ẩn dụ (Chuyển đổi cảm giác)</span>
+                                </label>
+                                <label class="option-label">
+                                    <input type="radio" name="q1" value="C">
+                                    <span>C. So sánh ngang bằng</span>
+                                </label>
+                                <label class="option-label">
+                                    <input type="radio" name="q1" value="D">
+                                    <span>D. Nói quá - phóng đại</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- QUESTION 2 -->
+                        <div class="question-block" data-q="2">
+                            <div class="q-title"><strong>Câu 2:</strong> Mục đích chính của văn bản Nghị luận là gì?</div>
+                            <div class="options-grid">
+                                <label class="option-label">
+                                    <input type="radio" name="q2" value="A">
+                                    <span>A. Kể lại một chuỗi các sự việc có mở đầu và kết thúc</span>
+                                </label>
+                                <label class="option-label">
+                                    <input type="radio" name="q2" value="B">
+                                    <span>B. Thuyết phục người đọc, người nghe về một tư tưởng, quan điểm</span>
+                                </label>
+                                <label class="option-label">
+                                    <input type="radio" name="q2" value="C">
+                                    <span>C. Tái hiện lại hình ảnh sự vật, phong cảnh bằng ngôn từ</span>
+                                </label>
+                                <label class="option-label">
+                                    <input type="radio" name="q2" value="D">
+                                    <span>D. Bộc lộ cảm xúc trực tiếp của người viết</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- SUBMIT QUIZ ACTION -->
+                        <div class="quiz-footer-actions">
+                            <button class="btn-submit-quiz" onclick="submitQuiz()"><i class="fa-solid fa-paper-plane"></i> Nộp Bài & Xem Điểm</button>
+                            <div id="quizResultBox" class="quiz-result-box hidden"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== TAB 5: CỔNG NỘP SẢN PHẨM ==================== -->
+        <section class="tab-pane" id="pane-nopbai">
+            <div class="section-container">
+                <div class="section-header">
+                    <div>
+                        <h2 class="section-title"><i class="fa-solid fa-cloud-arrow-up"></i> Cổng Nộp Sản Phẩm Học Tập Đa Kênh</h2>
+                        <p class="section-subtitle">Hỗ trợ nộp qua S3 Direct Presigned URL, Quét mã QR, Padlet, Google Drive và Zalo</p>
+                    </div>
+                </div>
+
+                <div class="submission-layout-grid">
+                    <!-- DIRECT FILE UPLOAD -->
+                    <div class="submission-card">
+                        <div class="sub-badge"><i class="fa-solid fa-server"></i> Kênh 1: Tải lên Trực tiếp Đám mây</div>
+                        <h3>Tải lên tệp sản phẩm (DOCX, PPTX, PDF, Video, MP3)</h3>
+                        <p class="text-muted">Hệ thống cấp Presigned URL tải trực tiếp vào kho lưu trữ S3 tốc độ cao.</p>
+
+                        <form id="directUploadForm" onsubmit="handleDirectUpload(event)">
+                            <div class="form-group">
+                                <label>Họ và tên học sinh:</label>
+                                <input type="text" id="subName" class="form-control" placeholder="Ví dụ: Nguyễn Văn An" required>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group col-half">
+                                    <label>Khối lớp:</label>
+                                    <select id="subGrade" class="form-control">
+                                        <option value="6">Khối 6</option>
+                                        <option value="7" selected>Khối 7</option>
+                                        <option value="8">Khối 8</option>
+                                        <option value="9">Khối 9</option>
+                                    </select>
+                                </div>
+                                <div class="form-group col-half">
+                                    <label>Lớp học:</label>
+                                    <input type="text" id="subClass" class="form-control" placeholder="Ví dụ: 7A1" required>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Chọn tệp nộp bài:</label>
+                                <div class="drop-zone" onclick="document.getElementById('fileInput').click()">
+                                    <i class="fa-solid fa-file-arrow-up"></i>
+                                    <p id="dropText">Kéo thả tệp vào đây hoặc nhấn để duyệt file</p>
+                                    <small>Hỗ trợ tối đa 50MB (PDF, DOCX, PPTX, MP4, PNG, JPG)</small>
+                                    <input type="file" id="fileInput" class="hidden-input" onchange="onFileSelected(this)">
+                                </div>
+                            </div>
+                            <button type="submit" class="btn-primary-block"><i class="fa-solid fa-cloud-arrow-up"></i> Xác nhận Nộp Bài Ngay</button>
+                        </form>
+                        <div id="uploadStatusMsg" class="upload-msg hidden"></div>
+                    </div>
+
+                    <!-- MULTI-CHANNEL OPTIONS -->
+                    <div class="submission-card qr-padlet-card">
+                        <div class="sub-badge bg-emerald"><i class="fa-solid fa-qrcode"></i> Kênh 2: Quét QR & Kênh Tương Tác</div>
+                        <h3>Nộp nhanh qua QR, Padlet hoặc Zalo OA</h3>
+                        <p class="text-muted">Dành cho học sinh làm việc nhóm hoặc nộp dự án video sáng tạo số.</p>
+
+                        <div class="qr-box-center">
+                            <div class="mock-qr-code">
+                                <i class="fa-solid fa-qrcode"></i>
+                            </div>
+                            <span class="qr-caption">Quét mã QR để mở bảng nộp bài trên điện thoại</span>
+                        </div>
+
+                        <div class="channel-links-list">
+                            <a href="https://padlet.com" target="_blank" class="channel-btn btn-padlet">
+                                <i class="fa-solid fa-chalkboard"></i>
+                                <div>
+                                    <strong>Bảng Nộp Bài Padlet Lớp 7</strong>
+                                    <small>Nộp sản phẩm vẽ tranh, sơ đồ tư duy</small>
+                                </div>
+                            </a>
+                            <a href="https://drive.google.com" target="_blank" class="channel-btn btn-gdrive">
+                                <i class="fa-brands fa-google-drive"></i>
+                                <div>
+                                    <strong>Thư mục Google Drive Khối 6-9</strong>
+                                    <small>Dành cho tệp dung lượng lớn > 100MB</small>
+                                </div>
+                            </a>
+                            <a href="https://zalo.me" target="_blank" class="channel-btn btn-zalo">
+                                <i class="fa-solid fa-comment-dots"></i>
+                                <div>
+                                    <strong>Nhóm Zalo Học Tập THCS Phú Bình</strong>
+                                    <small>Nhận thông báo và phản hồi từ giáo viên</small>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== TAB 6: GAME GIÁO DỤC ==================== -->
+        <section class="tab-pane" id="pane-game">
+            <div class="section-container">
+                <div class="game-arena-wrapper">
+                    <div class="game-top-bar">
+                        <div class="game-score-badge">
+                            <i class="fa-solid fa-star"></i> Điểm của bạn: <span id="gameScore">100</span> XP
+                        </div>
+                        <div class="game-title-center">
+                            <h2>🎮 ĐẤU TRƯỜNG TRI THỨC SỐ</h2>
+                            <p>Vượt qua các câu hỏi thử thách để thăng hạng trên Bảng Vàng Phú Bình!</p>
+                        </div>
+                        <div class="game-streak-badge">
+                            <i class="fa-solid fa-fire"></i> Chuỗi thắng: <span id="gameStreak">2</span> 🔥
+                        </div>
+                    </div>
+
+                    <!-- GAME SCREEN -->
+                    <div class="game-canvas-card" id="gameScreen">
+                        <div class="game-question-box">
+                            <div class="game-round-tag" id="gameRoundTag">Thử thách 1 / 3</div>
+                            <h3 id="gameQuestionText">Tác giả của bài thơ "Đồng chí" là ai?</h3>
+                        </div>
+
+                        <div class="game-answers-grid" id="gameOptionsContainer">
+                            <button class="game-btn" onclick="checkGameAnswer(0)">A. Chính Hữu</button>
+                            <button class="game-btn" onclick="checkGameAnswer(1)">B. Phạm Tiến Duật</button>
+                            <button class="game-btn" onclick="checkGameAnswer(2)">C. Bằng Việt</button>
+                            <button class="game-btn" onclick="checkGameAnswer(3)">D. Huy Cận</button>
+                        </div>
+
+                        <div class="game-feedback-box hidden" id="gameFeedback"></div>
+                    </div>
+
+                    <!-- LEADERBOARD -->
+                    <div class="leaderboard-card">
+                        <h3><i class="fa-solid fa-trophy text-gold"></i> Bảng Vinh Danh Tuần Này</h3>
+                        <div class="leaderboard-list">
+                            <div class="rank-item rank-1">
+                                <span class="rank-num">🥇 1</span>
+                                <span class="rank-name">Trần Bảo Ngọc (8A1)</span>
+                                <span class="rank-score">4,850 XP</span>
+                            </div>
+                            <div class="rank-item rank-2">
+                                <span class="rank-num">🥈 2</span>
+                                <span class="rank-name">Lê Hoàng Nam (7A3)</span>
+                                <span class="rank-score">4,320 XP</span>
+                            </div>
+                            <div class="rank-item rank-3">
+                                <span class="rank-num">🥉 3</span>
+                                <span class="rank-name">Nguyễn Minh Quân (9B2)</span>
+                                <span class="rank-score">3,980 XP</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== TAB 7: TRỢ LÝ AI HỎI ĐÁP 24/7 ==================== -->
+        <section class="tab-pane" id="pane-hoidap">
+            <div class="section-container">
+                <div class="ai-chat-interface">
+                    <div class="chat-sidebar">
+                        <div class="chat-sidebar-header">
+                            <h3><i class="fa-solid fa-robot text-cyan"></i> Trợ Lý AI Học Tập</h3>
+                            <span class="status-online"><span class="dot-online"></span> Đang trực tuyến</span>
+                        </div>
+                        <p class="sidebar-intro">Được tinh chỉnh dữ liệu theo chương trình Ngữ văn & Giáo dục THCS Phú Bình.</p>
+
+                        <div class="prompt-suggestions">
+                            <h4><i class="fa-solid fa-lightbulb"></i> Gợi ý câu hỏi nhanh:</h4>
+                            <button class="suggest-chip" onclick="askAiPrompt('Hãy hướng dẫn em cách lập dàn ý phân tích nhân vật văn học khối 7?')">
+                                💡 Cách lập dàn ý nhân vật
+                            </button>
+                            <button class="suggest-chip" onclick="askAiPrompt('Phân biệt câu đơn và câu ghép trong tiếng Việt kèm ví dụ?')">
+                                💡 Phân biệt câu đơn & câu ghép
+                            </button>
+                            <button class="suggest-chip" onclick="askAiPrompt('Tóm tắt ý nghĩa nhan đề bài thơ Đồng chí?')">
+                                💡 Ý nghĩa nhan đề 'Đồng chí'
+                            </button>
+                            <button class="suggest-chip" onclick="askAiPrompt('Cho em 3 bài tập rèn luyện biện pháp nhân hóa?')">
+                                💡 Bài tập biện pháp tu từ
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="chat-window">
+                        <div class="chat-messages-scroll" id="chatMessages">
+                            <div class="chat-bubble ai-bubble">
+                                <div class="avatar-ai"><i class="fa-solid fa-robot"></i></div>
+                                <div class="bubble-content">
+                                    <div class="bubble-sender">Trợ Lý AI Phú Bình</div>
+                                    <p>Chào em! Em là trợ lý số đồng hành cùng học sinh trường THCS Phú Bình. Em có thể giúp gì cho em trong bài học hôm nay?</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="chat-input-area">
+                            <form id="chatForm" onsubmit="handleSendChat(event)">
+                                <input type="text" id="chatInput" placeholder="Nhập câu hỏi học tập của em tại đây (VD: Cách phân tích bài thơ...)" autocomplete="off" required>
+                                <button type="submit" class="btn-send-chat" id="btnSendChat">
+                                    <i class="fa-solid fa-paper-plane"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== TAB 8: KHO TÀI LIỆU VIP ==================== -->
+        <section class="tab-pane" id="pane-khovip">
+            <div class="section-container">
+                <div class="vip-vault-container">
+                    <div class="vip-hero-banner">
+                        <div class="vip-crown-icon"><i class="fa-solid fa-crown"></i></div>
+                        <h2>💎 KHO TÀI LIỆU ĐẶC QUYỀN VIP</h2>
+                        <p>Khu vực tài liệu bồi dưỡng học sinh giỏi, đề thi khảo sát chất lượng chuyên sâu và bộ trợ lý AI chuyên gia.</p>
+
+                        <div class="vip-unlock-box">
+                            <div class="input-with-btn">
+                                <input type="text" id="vipCodeInput" placeholder="Nhập mã kích hoạt VIP (Thử mã: PHUBINH2026)..." class="vip-input">
+                                <button class="btn-unlock-vip" onclick="unlockVipVault()"><i class="fa-solid fa-key"></i> Kích hoạt ngay</button>
+                            </div>
+                            <div id="vipStatusMsg" class="vip-status-text"></div>
+                        </div>
+                    </div>
+
+                    <div class="vip-items-grid" id="vipItemsGrid">
+                        <div class="vip-card locked" id="vipCard1">
+                            <div class="lock-overlay"><i class="fa-solid fa-lock"></i><span>Cần kích hoạt VIP</span></div>
+                            <div class="vip-tag">Khối 9 • Chuyên sâu</div>
+                            <h3>Tuyển tập 50 Đề thi thử vào lớp 10 Ngữ Văn (Kèm đáp án chi tiết)</h3>
+                            <p>Tài liệu chuẩn cấu trúc Sở GD&ĐT, ma trận câu hỏi phân hóa cao.</p>
+                            <button class="btn-download-vip" onclick="downloadVipDoc('de-thi-vao-10.pdf')"><i class="fa-solid fa-file-arrow-down"></i> Tải tài liệu</button>
+                        </div>
+
+                        <div class="vip-card locked" id="vipCard2">
+                            <div class="lock-overlay"><i class="fa-solid fa-lock"></i><span>Cần kích hoạt VIP</span></div>
+                            <div class="vip-tag">Khối 6-8 • Bồi dưỡng HSG</div>
+                            <h3>Sổ tay Chuyên đề: Bồi Dưỡng Cảm Thụ Văn Học Dành Cho Học Sinh Giỏi</h3>
+                            <p>Kỹ năng viết đoạn văn cảm thụ sâu sắc và nâng cao vốn từ vựng nghệ thuật.</p>
+                            <button class="btn-download-vip" onclick="downloadVipDoc('cam-thu-van-hoc.pdf')"><i class="fa-solid fa-file-arrow-down"></i> Tải tài liệu</button>
+                        </div>
+
+                        <div class="vip-card locked" id="vipCard3">
+                            <div class="lock-overlay"><i class="fa-solid fa-lock"></i><span>Cần kích hoạt VIP</span></div>
+                            <div class="vip-tag">Bộ công cụ AI Pro</div>
+                            <h3>Trợ Lý AI Chấm Điểm & Sửa Lỗi Diễn Đạt Bài Văn Tự Động</h3>
+                            <p>Phân tích từng câu, gợi ý cách diễn đạt giàu hình ảnh và sửa lỗi chính tả.</p>
+                            <button class="btn-download-vip" onclick="downloadVipDoc('ai-pro-assistant')"><i class="fa-solid fa-wand-magic-sparkles"></i> Mở Trợ lý Pro</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== TAB 9: BẢNG TIN & HƯỚNG NGHIỆP ==================== -->
+        <section class="tab-pane" id="pane-bangtin">
+            <div class="section-container">
+                <div class="section-header">
+                    <div>
+                        <h2 class="section-title"><i class="fa-solid fa-newspaper"></i> Bảng Tin Nhà Trường & Hướng Nghiệp</h2>
+                        <p class="section-subtitle">Thông tin hoạt động trường THCS Phú Bình và góc tư vấn định hướng tương lai</p>
+                    </div>
+                </div>
+
+                <div class="news-grid">
+                    <article class="news-card">
+                        <div class="news-img news-bg-1"><i class="fa-solid fa-school"></i></div>
+                        <div class="news-body">
+                            <span class="news-cat">Tin nhà trường</span>
+                            <h3>Phát động phong trào 'Hành Trình Số' nâng cao năng lực công nghệ cho học sinh</h3>
+                            <p>Trường THCS Phú Bình chính thức đưa nền tảng số vào hỗ trợ việc dạy và học sáng tạo.</p>
+                            <span class="news-date"><i class="fa-regular fa-clock"></i> 08/08/2026</span>
+                        </div>
+                    </article>
+
+                    <article class="news-card">
+                        <div class="news-img news-bg-2"><i class="fa-solid fa-compass-drafting"></i></div>
+                        <div class="news-body">
+                            <span class="news-cat">Góc Hướng Nghiệp</span>
+                            <h3>Định hướng chọn trường THPT và nghề nghiệp tương lai cho học sinh Khối 9</h3>
+                            <p>Chia sẻ cẩm nang các tiêu chí chọn trường phù hợp với năng lực và đam mê của bản thân.</p>
+                            <span class="news-date"><i class="fa-regular fa-clock"></i> 05/08/2026</span>
+                        </div>
+                    </article>
+
+                    <article class="news-card">
+                        <div class="news-img news-bg-3"><i class="fa-solid fa-award"></i></div>
+                        <div class="news-body">
+                            <span class="news-cat">Khen thưởng</span>
+                            <h3>Vinh danh các tập thể lớp đạt thành tích cao trong tuần học tập số</h3>
+                            <p>Chúc mừng các chi đội 7A1, 8A2 và 9B1 đã tích cực hoàn thành 100% phiếu học tập.</p>
+                            <span class="news-date"><i class="fa-regular fa-clock"></i> 02/08/2026</span>
+                        </div>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== TAB 10: SƠ ĐỒ KIẾN TRÚC 4 TẦNG (INTERACTIVE VIEWER) ==================== -->
+        <section class="tab-pane" id="pane-kientruc">
+            <div class="section-container">
+                <div class="arch-header-row">
+                    <div>
+                        <h2 class="section-title"><i class="fa-solid fa-network-wired"></i> Sơ Đồ Kiến Trúc Hệ Thống 4 Tầng</h2>
+                        <p class="section-subtitle">Nhấp vào bất kỳ khối nào dưới đây để xem chi tiết luồng dữ liệu và vai trò kỹ thuật</p>
+                    </div>
+                    <div class="arch-legend">
+                        <span class="legend-chip l-client">Tầng 1: Frontend (11 Nodes)</span>
+                        <span class="legend-chip l-mid">Tầng 2: Middleware & Bảo mật</span>
+                        <span class="legend-chip l-ctrl">Tầng 3: Backend API</span>
+                        <span class="legend-chip l-db">Tầng 4: Database & Storage</span>
+                    </div>
+                </div>
+
+                <div class="interactive-arch-board">
+                    <!-- TIER 1 -->
+                    <div class="arch-tier-col">
+                        <div class="tier-badge-title bg-t1">TẦNG GIAO DIỆN (FRONTEND)</div>
+                        <div class="arch-node-list">
+                            <div class="node-card n-client active-node" onclick="inspectNode('ui-trangchu')">
+                                <i class="fa-solid fa-globe"></i>
+                                <div>
+                                    <strong>🌐 ui-trangchu</strong>
+                                    <small>Cổng Hành Trình Số</small>
+                                </div>
+                            </div>
+                            <div class="node-card n-client" onclick="inspectNode('ui-dangnhap')">
+                                <i class="fa-solid fa-lock"></i>
+                                <div>
+                                    <strong>🔐 ui-dangnhap</strong>
+                                    <small>Google SSO Login</small>
+                                </div>
+                            </div>
+                            <div class="node-card n-client" onclick="inspectNode('ui-baigiang')">
+                                <i class="fa-solid fa-film"></i>
+                                <div>
+                                    <strong>📽️ ui-baigiang</strong>
+                                    <small>Bài giảng Khối 6-9</small>
+                                </div>
+                            </div>
+                            <div class="node-card n-client" onclick="inspectNode('ui-hoclieu')">
+                                <i class="fa-solid fa-podcast"></i>
+                                <div>
+                                    <strong>📚 ui-hoclieu</strong>
+                                    <small>Học liệu & Podcast</small>
+                                </div>
+                            </div>
+                            <div class="node-card n-client" onclick="inspectNode('ui-nopbai')">
+                                <i class="fa-solid fa-cloud-arrow-up"></i>
+                                <div>
+                                    <strong>📤 ui-nopbai</strong>
+                                    <small>Cổng nộp bài đa kênh</small>
+                                </div>
+                            </div>
+                            <div class="node-card n-client" onclick="inspectNode('ui-hoidap')">
+                                <i class="fa-solid fa-robot"></i>
+                                <div>
+                                    <strong>🤖 ui-hoidap</strong>
+                                    <small>Trợ lý AI 24/7</small>
+                                </div>
+                            </div>
+                            <div class="node-card n-client" onclick="inspectNode('ui-khovip')">
+                                <i class="fa-solid fa-gem"></i>
+                                <div>
+                                    <strong>💎 ui-khovip</strong>
+                                    <small>Kho VIP Vault</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TIER 2 -->
+                    <div class="arch-tier-col">
+                        <div class="tier-badge-title bg-t2">TẦNG BẢO MẬT & MIDDLEWARE</div>
+                        <div class="arch-node-list">
+                            <div class="node-card n-mid" onclick="inspectNode('mid-api-gateway')">
+                                <i class="fa-solid fa-traffic-light"></i>
+                                <div>
+                                    <strong>🚦 mid-api-gateway</strong>
+                                    <small>API Gateway & Routing</small>
+                                </div>
+                            </div>
+                            <div class="node-card n-mid" onclick="inspectNode('mid-security')">
+                                <i class="fa-solid fa-shield-halved"></i>
+                                <div>
+                                    <strong>🛡️ mid-security</strong>
+                                    <small>WAF & Auth Guard</small>
+                                </div>
+                            </div>
+                            <div class="node-card n-mid" onclick="inspectNode('mid-cdn')">
+                                <i class="fa-solid fa-bolt"></i>
+                                <div>
+                                    <strong>⚡ CDN & Edge Cache</strong>
+                                    <small>Cloudflare Cache</small>
+                                </div>
+                            </div>
+                            <div class="node-card n-mid" onclick="inspectNode('mid-queue')">
+                                <i class="fa-solid fa-envelope-open-text"></i>
+                                <div>
+                                    <strong>📨 Message Queue</strong>
+                                    <small>RabbitMQ / Redis Queue</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TIER 3 -->
+                    <div class="arch-tier-col">
+                        <div class="tier-badge-title bg-t3">TẦNG NGHIỆP VỤ (BACKEND)</div>
+                        <div class="arch-node-list">
+                            <div class="node-card n-ctrl" onclick="inspectNode('ctrl-auth')">
+                                <i class="fa-solid fa-user-shield"></i>
+                                <div>
+                                    <strong>⚙️ ctrl-auth</strong>
+                                    <small>Auth & Profile Service</small>
+                                </div>
+                            </div>
+                            <div class="node-card n-ctrl" onclick="inspectNode('ctrl-learning')">
+                                <i class="fa-solid fa-book-journal-whills"></i>
+                                <div>
+                                    <strong>⚙️ ctrl-learning</strong>
+                                    <small>Learning & Content API</small>
+                                </div>
+                            </div>
+                            <div class="node-card n-ctrl" onclick="inspectNode('ctrl-interactive')">
+                                <i class="fa-solid fa-microchip"></i>
+                                <div>
+                                    <strong>⚙️ ctrl-interactive</strong>
+                                    <small>Interactive & AI Engine</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TIER 4 -->
+                    <div class="arch-tier-col">
+                        <div class="tier-badge-title bg-t4">TẦNG DATABASE & STORAGE</div>
+                        <div class="arch-node-list">
+                            <div class="node-card n-db" onclick="inspectNode('db-main')">
+                                <i class="fa-solid fa-database"></i>
+                                <div>
+                                    <strong>🗄️ db-main</strong>
+                                    <small>PostgreSQL (User/Điểm)</small>
+                                </div>
+                            </div>
+                            <div class="node-card n-db" onclick="inspectNode('db-content')">
+                                <i class="fa-solid fa-folder-tree"></i>
+                                <div>
+                                    <strong>🗂️ db-content</strong>
+                                    <small>MongoDB (Tài liệu/Chat)</small>
+                                </div>
+                            </div>
+                            <div class="node-card n-db" onclick="inspectNode('db-storage')">
+                                <i class="fa-solid fa-cloud"></i>
+                                <div>
+                                    <strong>☁️ db-storage</strong>
+                                    <small>S3 Cloud Storage</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- NODE INSPECTOR MODAL / DRAWER -->
+                <div class="node-detail-panel" id="nodeDetailPanel">
+                    <div class="panel-header">
+                        <h3 id="detailNodeTitle"><i class="fa-solid fa-circle-info"></i> Chi tiết Node</h3>
+                        <span class="badge-role" id="detailNodeType">CLIENT NODE</span>
+                    </div>
+                    <p id="detailNodeDesc" class="detail-desc">Chọn một node bất kỳ để xem thông số kết nối.</p>
+                    
+                    <div class="detail-props-grid">
+                        <div class="prop-item">
+                            <span class="p-label">Nguồn dữ liệu:</span>
+                            <span class="p-val" id="detailNodeSource">Người dùng / Trình duyệt</span>
+                        </div>
+                        <div class="prop-item">
+                            <span class="p-label">Đích kết nối:</span>
+                            <span class="p-val" id="detailNodeTarget">API Gateway & WAF</span>
+                        </div>
+                        <div class="prop-item">
+                            <span class="p-label">Giao thức truyền:</span>
+                            <span class="p-val" id="detailNodeProtocol">HTTPS / JSON REST / SSE</span>
+                        </div>
+                        <div class="prop-item">
+                            <span class="p-label">Cơ chế bảo vệ:</span>
+                            <span class="p-val" id="detailNodeSec">JWT + Rate Limiter WAF</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- GOOGLE LOGIN MODAL -->
+    <div class="modal-backdrop hidden" id="loginModal">
+        <div class="modal-dialog">
+            <button class="modal-close" onclick="closeLoginModal()">&times;</button>
+            <div class="modal-header-icon">
+                <i class="fa-brands fa-google"></i>
+            </div>
+            <h2>Đăng Nhập Google SSO</h2>
+            <p class="modal-desc">Sử dụng tài khoản Google để truy cập hệ thống Hành Trình Số</p>
+
+            <form onsubmit="handleGoogleLogin(event)">
+                <div class="form-group">
+                    <label>Họ và tên học sinh / giáo viên:</label>
+                    <input type="text" id="loginFullName" class="form-control" placeholder="Ví dụ: Huỳnh Ngân Giang" required>
+                </div>
+                <div class="form-group">
+                    <label>Địa chỉ Email Google:</label>
+                    <input type="email" id="loginEmail" class="form-control" placeholder="ngangiang@gmail.com" required>
+                </div>
+                <div class="form-row">
+                    <div class="form-group col-half">
+                        <label>Vai trò:</label>
+                        <select id="loginRole" class="form-control" onchange="onRoleChange(this.value)">
+                            <option value="Học sinh">Học sinh</option>
+                            <option value="Giáo viên">Giáo viên</option>
+                            <option value="Quản trị viên">Quản trị viên</option>
+                        </select>
+                    </div>
+                    <div class="form-group col-half" id="gradeSelectGroup">
+                        <label>Khối lớp:</label>
+                        <select id="loginGrade" class="form-control">
+                            <option value="6">Khối 6</option>
+                            <option value="7" selected>Khối 7</option>
+                            <option value="8">Khối 8</option>
+                            <option value="9">Khối 9</option>
+                        </select>
+                    </div>
+                </div>
+                <button type="submit" class="btn-google-action">
+                    <i class="fa-brands fa-google"></i> Tiếp tục với Google
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL HANDBOOK VIEWER -->
+    <div class="modal-backdrop hidden" id="handbookModal">
+        <div class="modal-dialog modal-lg">
+            <button class="modal-close" onclick="closeHandbookModal()">&times;</button>
+            <h2 id="hbModalTitle">Sổ Tay Tri Thức Số</h2>
+            <div id="hbModalBody" class="modal-hb-body"></div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
