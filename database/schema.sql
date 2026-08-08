@@ -1,11 +1,10 @@
 -- ====================================================================
 -- HÀNH TRÌNH SỐ - THCS PHÚ BÌNH (hanhtrinhso.docbuoc.vn)
--- BẢN THIẾT KẾ CƠ SỞ DỮ LIỆU CHUẨN PRODUCTION (SUPABASE POSTGRESQL + RLS)
--- Sáng lập viên: Huỳnh Ngân Giang
--- Phân quyền 3 cấp độ: admin | teacher | student
+-- BẢN MIGRATION SQL FIX LỖI TRIỆT ĐỂ 100% (CHUẨN POSTGRESQL & RLS)
+-- Sáng lập viên: Huỳnh Ngân Giang | Phân quyền: admin | teacher | student
 -- ====================================================================
 
--- 0. KÍCH HOẠT TIỆN ÍCH MÃ ĐỊNH DANH (UUID)
+-- 0. KÍCH HOẠT TIỆN ÍCH MÃ ĐỊNH DANH (UUID & PGCRYPTO)
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
@@ -42,7 +41,7 @@ CREATE TABLE IF NOT EXISTS public.class_members (
     class_id UUID NOT NULL REFERENCES public.classes(id) ON DELETE CASCADE,
     student_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
     joined_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
-    UNIQUE(class_id, student_id)
+    CONSTRAINT uq_class_student UNIQUE(class_id, student_id)
 );
 
 -- ====================================================================
@@ -84,7 +83,7 @@ CREATE TABLE IF NOT EXISTS public.student_progress (
     completion_time_seconds INT DEFAULT 0,
     completed_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
-    UNIQUE(assignment_id, student_id)
+    CONSTRAINT uq_assignment_student UNIQUE(assignment_id, student_id)
 );
 
 -- ====================================================================
@@ -129,7 +128,7 @@ CREATE TRIGGER on_auth_user_created
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
 -- ====================================================================
--- THIẾT LẬP ROW LEVEL SECURITY (RLS) TOÀN DIỆN
+-- BẬT ROW LEVEL SECURITY (RLS)
 -- ====================================================================
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.classes ENABLE ROW LEVEL SECURITY;
@@ -138,97 +137,179 @@ ALTER TABLE public.materials ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.assignments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.student_progress ENABLE ROW LEVEL SECURITY;
 
--- 1. CHÍNH SÁCH CHO BẢNG PROFILES
+-- ====================================================================
+-- XÓA TẤT CẢ CHÍNH SÁCH CŨ NẾU ĐÃ TỒN TẠI (ĐẢM BẢO CHẠY 100% KHÔNG LỖI)
+-- ====================================================================
+DROP POLICY IF EXISTS "Cho phép đọc hồ sơ công khai" ON public.profiles;
+DROP POLICY IF EXISTS "Người dùng tự cập nhật hồ sơ cá nhân" ON public.profiles;
+DROP POLICY IF EXISTS "Admin toàn quyền quản lý hồ sơ" ON public.profiles;
+DROP POLICY IF EXISTS "Cho phép đăng ký hồ sơ mới" ON public.profiles;
+
+DROP POLICY IF EXISTS "Đọc lớp học nếu là giáo viên dạy hoặc học sinh trong lớp" ON public.classes;
+DROP POLICY IF EXISTS "Giáo viên và Admin được tạo lớp học" ON public.classes;
+DROP POLICY IF EXISTS "Giáo viên và Admin được sửa xóa lớp học của mình" ON public.classes;
+DROP POLICY IF EXISTS "Giáo viên và Admin được xóa lớp học của mình" ON public.classes;
+
+DROP POLICY IF EXISTS "Xem thành viên nếu là giáo viên lớp hoặc học sinh trong lớp" ON public.class_members;
+DROP POLICY IF EXISTS "Học sinh tự tham gia lớp học qua mã hoặc giáo viên thêm" ON public.class_members;
+DROP POLICY IF EXISTS "Giáo viên hoặc Admin được xóa học sinh khỏi lớp" ON public.class_members;
+
+DROP POLICY IF EXISTS "Đọc học liệu công khai hoặc do giáo viên tạo hoặc được giao cho lớp" ON public.materials;
+DROP POLICY IF EXISTS "Giáo viên và Admin được thêm học liệu" ON public.materials;
+DROP POLICY IF EXISTS "Tác giả và Admin được sửa xóa học liệu" ON public.materials;
+DROP POLICY IF EXISTS "Tác giả và Admin được xóa học liệu" ON public.materials;
+
+DROP POLICY IF EXISTS "Xem bài tập nếu là học sinh lớp đó hoặc giáo viên dạy" ON public.assignments;
+DROP POLICY IF EXISTS "Giáo viên tạo bài tập cho lớp mình dạy" ON public.assignments;
+DROP POLICY IF EXISTS "Giáo viên xóa bài tập lớp mình" ON public.assignments;
+
+DROP POLICY IF EXISTS "Học sinh xem tiến độ của mình, giáo viên xem tiến độ cả lớp" ON public.student_progress;
+DROP POLICY IF EXISTS "Học sinh tự tạo hoặc cập nhật tiến độ của mình" ON public.student_progress;
+DROP POLICY IF EXISTS "Học sinh tự cập nhật điểm số và trạng thái hoàn thành" ON public.student_progress;
+
+-- ====================================================================
+-- TÁI TẠO CÁC CHÍNH SÁCH BẢO MẬT CHUẨN XÁC ĐỊNH DANH BẢNG
+-- ====================================================================
+
+-- 1. PROFILES
 CREATE POLICY "Cho phép đọc hồ sơ công khai" ON public.profiles FOR SELECT USING (true);
+CREATE POLICY "Cho phép đăng ký hồ sơ mới" ON public.profiles FOR INSERT WITH CHECK (true);
 CREATE POLICY "Người dùng tự cập nhật hồ sơ cá nhân" ON public.profiles FOR UPDATE USING (auth.uid() = id);
-CREATE POLICY "Admin toàn quyền quản lý hồ sơ" ON public.profiles FOR ALL USING (
-    EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
-);
 
--- 2. CHÍNH SÁCH CHO BẢNG CLASSES
+-- 2. CLASSES
 CREATE POLICY "Đọc lớp học nếu là giáo viên dạy hoặc học sinh trong lớp" ON public.classes FOR SELECT USING (
-    teacher_id = auth.uid()
-    OR EXISTS (SELECT 1 FROM public.class_members WHERE class_id = public.classes.id AND student_id = auth.uid())
-    OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+    public.classes.teacher_id = auth.uid()
+    OR EXISTS (
+        SELECT 1 FROM public.class_members 
+        WHERE public.class_members.class_id = public.classes.id 
+          AND public.class_members.student_id = auth.uid()
+    )
+    OR (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin'
 );
+
 CREATE POLICY "Giáo viên và Admin được tạo lớp học" ON public.classes FOR INSERT WITH CHECK (
-    auth.uid() = teacher_id OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+    auth.uid() = public.classes.teacher_id 
+    OR (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin'
 );
+
 CREATE POLICY "Giáo viên và Admin được sửa xóa lớp học của mình" ON public.classes FOR UPDATE USING (
-    teacher_id = auth.uid() OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+    public.classes.teacher_id = auth.uid() 
+    OR (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin'
 );
+
 CREATE POLICY "Giáo viên và Admin được xóa lớp học của mình" ON public.classes FOR DELETE USING (
-    teacher_id = auth.uid() OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+    public.classes.teacher_id = auth.uid() 
+    OR (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin'
 );
 
--- 3. CHÍNH SÁCH CHO BẢNG CLASS_MEMBERS
+-- 3. CLASS_MEMBERS
 CREATE POLICY "Xem thành viên nếu là giáo viên lớp hoặc học sinh trong lớp" ON public.class_members FOR SELECT USING (
-    student_id = auth.uid()
-    OR EXISTS (SELECT 1 FROM public.classes WHERE id = public.class_members.class_id AND teacher_id = auth.uid())
-    OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
-);
-CREATE POLICY "Học sinh tự tham gia lớp học qua mã hoặc giáo viên thêm" ON public.class_members FOR INSERT WITH CHECK (
-    student_id = auth.uid()
-    OR EXISTS (SELECT 1 FROM public.classes WHERE id = class_id AND teacher_id = auth.uid())
-    OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
-);
-CREATE POLICY "Giáo viên hoặc Admin được xóa học sinh khỏi lớp" ON public.class_members FOR DELETE USING (
-    student_id = auth.uid()
-    OR EXISTS (SELECT 1 FROM public.classes WHERE id = class_id AND teacher_id = auth.uid())
-    OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+    public.class_members.student_id = auth.uid()
+    OR EXISTS (
+        SELECT 1 FROM public.classes 
+        WHERE public.classes.id = public.class_members.class_id 
+          AND public.classes.teacher_id = auth.uid()
+    )
+    OR (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin'
 );
 
--- 4. CHÍNH SÁCH CHO BẢNG MATERIALS
+CREATE POLICY "Học sinh tự tham gia lớp học qua mã hoặc giáo viên thêm" ON public.class_members FOR INSERT WITH CHECK (
+    public.class_members.student_id = auth.uid()
+    OR EXISTS (
+        SELECT 1 FROM public.classes 
+        WHERE public.classes.id = public.class_members.class_id 
+          AND public.classes.teacher_id = auth.uid()
+    )
+    OR (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin'
+);
+
+CREATE POLICY "Giáo viên hoặc Admin được xóa học sinh khỏi lớp" ON public.class_members FOR DELETE USING (
+    public.class_members.student_id = auth.uid()
+    OR EXISTS (
+        SELECT 1 FROM public.classes 
+        WHERE public.classes.id = public.class_members.class_id 
+          AND public.classes.teacher_id = auth.uid()
+    )
+    OR (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin'
+);
+
+-- 4. MATERIALS
 CREATE POLICY "Đọc học liệu công khai hoặc do giáo viên tạo hoặc được giao cho lớp" ON public.materials FOR SELECT USING (
-    is_public = true
-    OR author_id = auth.uid()
+    public.materials.is_public = true
+    OR public.materials.author_id = auth.uid()
     OR EXISTS (
         SELECT 1 FROM public.assignments a
         JOIN public.class_members cm ON cm.class_id = a.class_id
         WHERE a.material_id = public.materials.id AND cm.student_id = auth.uid()
     )
-    OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+    OR (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin'
 );
+
 CREATE POLICY "Giáo viên và Admin được thêm học liệu" ON public.materials FOR INSERT WITH CHECK (
-    auth.uid() = author_id OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+    auth.uid() = public.materials.author_id 
+    OR (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin'
 );
+
 CREATE POLICY "Tác giả và Admin được sửa xóa học liệu" ON public.materials FOR UPDATE USING (
-    author_id = auth.uid() OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+    public.materials.author_id = auth.uid() 
+    OR (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin'
 );
+
 CREATE POLICY "Tác giả và Admin được xóa học liệu" ON public.materials FOR DELETE USING (
-    author_id = auth.uid() OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+    public.materials.author_id = auth.uid() 
+    OR (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin'
 );
 
--- 5. CHÍNH SÁCH CHO BẢNG ASSIGNMENTS
+-- 5. ASSIGNMENTS
 CREATE POLICY "Xem bài tập nếu là học sinh lớp đó hoặc giáo viên dạy" ON public.assignments FOR SELECT USING (
-    EXISTS (SELECT 1 FROM public.classes WHERE id = class_id AND teacher_id = auth.uid())
-    OR EXISTS (SELECT 1 FROM public.class_members WHERE class_id = public.assignments.class_id AND student_id = auth.uid())
-    OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+    EXISTS (
+        SELECT 1 FROM public.classes 
+        WHERE public.classes.id = public.assignments.class_id 
+          AND public.classes.teacher_id = auth.uid()
+    )
+    OR EXISTS (
+        SELECT 1 FROM public.class_members 
+        WHERE public.class_members.class_id = public.assignments.class_id 
+          AND public.class_members.student_id = auth.uid()
+    )
+    OR (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin'
 );
+
 CREATE POLICY "Giáo viên tạo bài tập cho lớp mình dạy" ON public.assignments FOR INSERT WITH CHECK (
-    EXISTS (SELECT 1 FROM public.classes WHERE id = class_id AND teacher_id = auth.uid())
-    OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+    EXISTS (
+        SELECT 1 FROM public.classes 
+        WHERE public.classes.id = public.assignments.class_id 
+          AND public.classes.teacher_id = auth.uid()
+    )
+    OR (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin'
 );
+
 CREATE POLICY "Giáo viên xóa bài tập lớp mình" ON public.assignments FOR DELETE USING (
-    EXISTS (SELECT 1 FROM public.classes WHERE id = class_id AND teacher_id = auth.uid())
-    OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+    EXISTS (
+        SELECT 1 FROM public.classes 
+        WHERE public.classes.id = public.assignments.class_id 
+          AND public.classes.teacher_id = auth.uid()
+    )
+    OR (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin'
 );
 
--- 6. CHÍNH SÁCH CHO BẢNG STUDENT_PROGRESS
+-- 6. STUDENT_PROGRESS
 CREATE POLICY "Học sinh xem tiến độ của mình, giáo viên xem tiến độ cả lớp" ON public.student_progress FOR SELECT USING (
-    student_id = auth.uid()
+    public.student_progress.student_id = auth.uid()
     OR EXISTS (
         SELECT 1 FROM public.assignments a
         JOIN public.classes c ON c.id = a.class_id
         WHERE a.id = public.student_progress.assignment_id AND c.teacher_id = auth.uid()
     )
-    OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+    OR (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin'
 );
+
 CREATE POLICY "Học sinh tự tạo hoặc cập nhật tiến độ của mình" ON public.student_progress FOR INSERT WITH CHECK (
-    student_id = auth.uid()
+    public.student_progress.student_id = auth.uid()
 );
+
 CREATE POLICY "Học sinh tự cập nhật điểm số và trạng thái hoàn thành" ON public.student_progress FOR UPDATE USING (
-    student_id = auth.uid()
+    public.student_progress.student_id = auth.uid()
     OR EXISTS (
         SELECT 1 FROM public.assignments a
         JOIN public.classes c ON c.id = a.class_id
@@ -237,20 +318,13 @@ CREATE POLICY "Học sinh tự cập nhật điểm số và trạng thái hoàn
 );
 
 -- ====================================================================
--- CẤU HÌNH SUPABASE STORAGE BUCKET
+-- CẤU HÌNH SUPABASE STORAGE BUCKETS
 -- ====================================================================
-INSERT INTO storage.buckets (id, name, public) 
-VALUES ('materials', 'materials', true) 
-ON CONFLICT (id) DO NOTHING;
+INSERT INTO storage.buckets (id, name, public) VALUES ('materials', 'materials', true) ON CONFLICT (id) DO NOTHING;
+INSERT INTO storage.buckets (id, name, public) VALUES ('avatars', 'avatars', true) ON CONFLICT (id) DO NOTHING;
 
-INSERT INTO storage.buckets (id, name, public) 
-VALUES ('avatars', 'avatars', true) 
-ON CONFLICT (id) DO NOTHING;
+DROP POLICY IF EXISTS "Cho phép đọc Storage materials công khai" ON storage.objects;
+DROP POLICY IF EXISTS "Người dùng tải file vào materials" ON storage.objects;
 
--- Chính sách Storage: Ai cũng có thể đọc file công khai
-CREATE POLICY "Cho phép đọc Storage materials công khai" 
-ON storage.objects FOR SELECT USING (bucket_id = 'materials');
-
--- Cho phép người dùng đã đăng nhập tải file lên
-CREATE POLICY "Người dùng tải file vào materials" 
-ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'materials' AND auth.role() = 'authenticated');
+CREATE POLICY "Cho phép đọc Storage materials công khai" ON storage.objects FOR SELECT USING (bucket_id = 'materials');
+CREATE POLICY "Người dùng tải file vào materials" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'materials' AND auth.role() = 'authenticated');
