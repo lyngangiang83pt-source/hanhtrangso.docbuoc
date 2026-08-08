@@ -75,18 +75,18 @@ export const Navbar = () => {
               <div className="text-right hidden sm:block">
                 <div className="flex items-center justify-end gap-2">
                   <span className="text-sm font-bold text-slate-800">
-                    {profile?.full_name || user.email.split('@')[0]}
+                    {profile?.full_name || profile?.username || user.email.split('@')[0]}
                   </span>
                   {getRoleBadge()}
                 </div>
-                <p className="text-xs text-slate-400 font-mono">{user.email}</p>
+                <p className="text-xs text-slate-400 font-mono">@{profile?.username || user.email.split('@')[0]}</p>
               </div>
 
               <div className="w-10 h-10 rounded-full bg-gradient-to-br from-sky-500 to-blue-600 text-white font-bold flex items-center justify-center shadow-inner">
                 {profile?.avatar_url ? (
                   <img src={profile.avatar_url} alt="Avatar" className="w-full h-full rounded-full object-cover" />
                 ) : (
-                  (profile?.full_name || user.email).charAt(0).toUpperCase()
+                  (profile?.full_name || profile?.username || user.email).charAt(0).toUpperCase()
                 )}
               </div>
 

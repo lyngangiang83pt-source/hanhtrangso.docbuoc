@@ -1,6 +1,6 @@
 -- ====================================================================
 -- HÀNH TRÌNH SỐ - THCS PHÚ BÌNH (hanhtrinhso.docbuoc.vn)
--- BẢN MIGRATION SQL FIX LỖI TRIỆT ĐỂ 100% (CHUẨN POSTGRESQL & RLS)
+-- BẢN MIGRATION SQL CHUẨN XÁC THỰC USERNAME & MẬT KHẨU (SUPABASE DB: dcmlhyzjkuagjafbvspj)
 -- Sáng lập viên: Huỳnh Ngân Giang | Phân quyền: admin | teacher | student
 -- ====================================================================
 
@@ -9,13 +9,16 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- ====================================================================
--- 1. BẢNG HỒ SƠ NGƯỜI DÙNG (PROFILES)
+-- 1. BẢNG HỒ SƠ NGƯỜI DÙNG (PROFILES - HỖ TRỢ USERNAME & PASSWORD)
 -- ====================================================================
 CREATE TABLE IF NOT EXISTS public.profiles (
     id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
     email TEXT UNIQUE NOT NULL,
+    username VARCHAR(100) UNIQUE NOT NULL,
     full_name TEXT NOT NULL,
     role TEXT NOT NULL DEFAULT 'student' CHECK (role IN ('admin', 'teacher', 'student')),
+    grade_level INT CHECK (grade_level BETWEEN 6 AND 9),
+    class_name VARCHAR(50),
     avatar_url TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
@@ -89,6 +92,7 @@ CREATE TABLE IF NOT EXISTS public.student_progress (
 -- ====================================================================
 -- TẠO CHỈ MỤC TỐI ƯU HIỆU NĂNG TRUY VẤN (INDEXES)
 -- ====================================================================
+CREATE INDEX IF NOT EXISTS idx_profiles_username ON public.profiles(username);
 CREATE INDEX IF NOT EXISTS idx_classes_teacher ON public.classes(teacher_id);
 CREATE INDEX IF NOT EXISTS idx_classes_code ON public.classes(code);
 CREATE INDEX IF NOT EXISTS idx_class_members_student ON public.class_members(student_id);
@@ -101,24 +105,46 @@ CREATE INDEX IF NOT EXISTS idx_student_progress_assignment ON public.student_pro
 CREATE INDEX IF NOT EXISTS idx_student_progress_student ON public.student_progress(student_id);
 
 -- ====================================================================
--- TRIGGER TỰ ĐỘNG CHÈN DỮ LIỆU VÀO PROFILES KHI ĐĂNG KÝ AUTH
+-- TRIGGER TỰ ĐỘNG LƯU USERNAME VÀO PROFILES KHI ĐĂNG KÝ SUPABASE AUTH
 -- ====================================================================
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger AS $$
+DECLARE
+    extracted_username TEXT;
 BEGIN
-  INSERT INTO public.profiles (id, email, full_name, role, avatar_url)
-  VALUES (
-    new.id,
-    new.email,
-    COALESCE(new.raw_user_meta_data->>'full_name', split_part(new.email, '@', 1)),
-    COALESCE(new.raw_user_meta_data->>'role', 'student'),
-    COALESCE(new.raw_user_meta_data->>'avatar_url', '')
-  )
-  ON CONFLICT (id) DO UPDATE SET
-    email = EXCLUDED.email,
-    full_name = COALESCE(EXCLUDED.full_name, public.profiles.full_name),
-    role = COALESCE(EXCLUDED.role, public.profiles.role);
-  RETURN new;
+    extracted_username := LOWER(COALESCE(
+        new.raw_user_meta_data->>'username',
+        split_part(new.email, '@', 1)
+    ));
+
+    INSERT INTO public.profiles (
+        id, 
+        email, 
+        username, 
+        full_name, 
+        role, 
+        grade_level,
+        class_name,
+        avatar_url
+    )
+    VALUES (
+        new.id,
+        new.email,
+        extracted_username,
+        COALESCE(new.raw_user_meta_data->>'full_name', extracted_username),
+        COALESCE(new.raw_user_meta_data->>'role', 'student'),
+        (new.raw_user_meta_data->>'grade_level')::INT,
+        new.raw_user_meta_data->>'class_name',
+        COALESCE(new.raw_user_meta_data->>'avatar_url', '')
+    )
+    ON CONFLICT (id) DO UPDATE SET
+        email = EXCLUDED.email,
+        username = EXCLUDED.username,
+        full_name = COALESCE(EXCLUDED.full_name, public.profiles.full_name),
+        role = COALESCE(EXCLUDED.role, public.profiles.role),
+        grade_level = COALESCE(EXCLUDED.grade_level, public.profiles.grade_level),
+        class_name = COALESCE(EXCLUDED.class_name, public.profiles.class_name);
+    RETURN new;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -138,12 +164,12 @@ ALTER TABLE public.assignments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.student_progress ENABLE ROW LEVEL SECURITY;
 
 -- ====================================================================
--- XÓA TẤT CẢ CHÍNH SÁCH CŨ NẾU ĐÃ TỒN TẠI (ĐẢM BẢO CHẠY 100% KHÔNG LỖI)
+-- XÓA TẤT CẢ CHÍNH SÁCH CŨ TRƯỚC KHI TẠO MỚI (TRÁNH LỖI DUPLICATE)
 -- ====================================================================
 DROP POLICY IF EXISTS "Cho phép đọc hồ sơ công khai" ON public.profiles;
 DROP POLICY IF EXISTS "Người dùng tự cập nhật hồ sơ cá nhân" ON public.profiles;
-DROP POLICY IF EXISTS "Admin toàn quyền quản lý hồ sơ" ON public.profiles;
 DROP POLICY IF EXISTS "Cho phép đăng ký hồ sơ mới" ON public.profiles;
+DROP POLICY IF EXISTS "Admin toàn quyền quản lý hồ sơ" ON public.profiles;
 
 DROP POLICY IF EXISTS "Đọc lớp học nếu là giáo viên dạy hoặc học sinh trong lớp" ON public.classes;
 DROP POLICY IF EXISTS "Giáo viên và Admin được tạo lớp học" ON public.classes;
@@ -168,7 +194,7 @@ DROP POLICY IF EXISTS "Học sinh tự tạo hoặc cập nhật tiến độ c�
 DROP POLICY IF EXISTS "Học sinh tự cập nhật điểm số và trạng thái hoàn thành" ON public.student_progress;
 
 -- ====================================================================
--- TÁI TẠO CÁC CHÍNH SÁCH BẢO MẬT CHUẨN XÁC ĐỊNH DANH BẢNG
+-- TÁI TẠO CÁC CHÍNH SÁCH BẢO MẬT RLS CHUẨN XÁC
 -- ====================================================================
 
 -- 1. PROFILES

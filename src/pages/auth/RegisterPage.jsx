@@ -4,21 +4,28 @@ import { useAuth } from '../../context/AuthContext';
 import { 
   GraduationCap, 
   Lock, 
-  Mail, 
   User, 
   Shield, 
   ArrowRight, 
   AlertCircle, 
   Loader2, 
   CheckCircle2,
-  BookOpen
+  BookOpen,
+  School,
+  Eye,
+  EyeOff,
+  AtSign
 } from 'lucide-react';
 
 export const RegisterPage = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [username, setUsername] = useState('');
   const [fullName, setFullName] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [selectedRole, setSelectedRole] = useState('student');
+  const [gradeLevel, setGradeLevel] = useState(7);
+  const [className, setClassName] = useState('7A1');
+  const [showPassword, setShowPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -30,8 +37,20 @@ export const RegisterPage = () => {
     setErrorMsg('');
     setSuccessMsg('');
 
+    // Kiểm tra định dạng username (chỉ chữ cái, số, dấu gạch dưới)
+    const cleanUsername = username.trim().toLowerCase();
+    if (!/^[a-z0-9_]{3,30}$/.test(cleanUsername)) {
+      setErrorMsg('Tên đăng nhập chỉ được chứa chữ thường (a-z), chữ số (0-9) và dấu gạch dưới (_), độ dài từ 3 đến 30 ký tự!');
+      return;
+    }
+
     if (password.length < 6) {
-      setErrorMsg('Mật khẩu phải có độ dài tối thiểu 6 ký tự để đảm bảo an toàn!');
+      setErrorMsg('Mật khẩu phải có độ dài tối thiểu 6 ký tự!');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setErrorMsg('Mật khẩu xác nhận không trùng khớp!');
       return;
     }
 
@@ -39,14 +58,16 @@ export const RegisterPage = () => {
 
     try {
       await signUp({
-        email,
+        username: cleanUsername,
         password,
         full_name: fullName,
-        role: selectedRole
+        role: selectedRole,
+        grade_level: gradeLevel,
+        class_name: className
       });
 
       setSuccessMsg(
-        'Đăng ký tài khoản thành công! Dữ liệu đã được đồng bộ vào Supabase Database. Đang chuyển hướng...'
+        `Đăng ký thành công tài khoản "${cleanUsername}"! Dữ liệu đã được đồng bộ lên Supabase Database. Đang chuyển hướng...`
       );
 
       setTimeout(() => {
@@ -56,8 +77,8 @@ export const RegisterPage = () => {
       console.error('Lỗi đăng ký:', err);
       setErrorMsg(
         err.message.includes('already registered')
-          ? 'Email này đã được sử dụng. Vui lòng đăng nhập hoặc sử dụng email khác!'
-          : err.message || 'Lỗi tạo tài khoản trên Supabase Auth'
+          ? 'Tên đăng nhập này đã được sử dụng. Vui lòng chọn tên đăng nhập khác!'
+          : err.message || 'Lỗi tạo tài khoản trên Supabase Database'
       );
     } finally {
       setSubmitting(false);
@@ -72,7 +93,7 @@ export const RegisterPage = () => {
         </div>
         <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">TẠO TÀI KHOẢN MỚI</h2>
         <p className="mt-2 text-sm text-slate-600">
-          Gia nhập nền tảng Giáo dục Số THCS Phú Bình (Đồng bộ Supabase RBAC)
+          Sử dụng Username & Mật khẩu đồng bộ Supabase (ID: dcmlhyzjkuagjafbvspj)
         </p>
       </div>
 
@@ -101,10 +122,29 @@ export const RegisterPage = () => {
           <form className="space-y-4" onSubmit={handleRegister}>
             <div>
               <label className="block text-sm font-semibold text-slate-700 mb-1">
+                Tên đăng nhập (Username)
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                  <AtSign className="w-5 h-5" />
+                </div>
+                <input
+                  type="text"
+                  required
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/\s+/g, ''))}
+                  placeholder="Ví dụ: nam_8a2 hoặc ngangiang"
+                  className="block w-full pl-10 pr-3 py-2.5 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono text-sm"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-1">
                 Họ và tên đầy đủ
               </label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
                   <User className="w-5 h-5" />
                 </div>
                 <input
@@ -112,52 +152,46 @@ export const RegisterPage = () => {
                   required
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  placeholder="Ví dụ: Huỳnh Ngân Giang hoặc Lê Hoàng Nam"
-                  className="block w-full pl-10 pr-3 py-2.5 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
+                  placeholder="Ví dụ: Lê Hoàng Nam"
+                  className="block w-full pl-10 pr-3 py-2.5 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm"
                 />
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1">
-                Địa chỉ Email
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                  <Mail className="w-5 h-5" />
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Mật khẩu
+                </label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Tối thiểu 6 ký tự"
+                    className="block w-full px-3 py-2.5 border border-slate-200 rounded-xl text-slate-900 focus:ring-2 focus:ring-emerald-500 text-xs"
+                  />
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Xác nhận mật khẩu
+                </label>
                 <input
-                  type="email"
+                  type={showPassword ? 'text' : 'password'}
                   required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="name@phubinh.edu.vn"
-                  className="block w-full pl-10 pr-3 py-2.5 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Nhập lại mật khẩu"
+                  className="block w-full px-3 py-2.5 border border-slate-200 rounded-xl text-slate-900 focus:ring-2 focus:ring-emerald-500 text-xs"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1">
-                Mật khẩu (Tối thiểu 6 ký tự)
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                  <Lock className="w-5 h-5" />
-                </div>
-                <input
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="block w-full pl-10 pr-3 py-2.5 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">
+              <label className="block text-xs font-semibold text-slate-700 mb-2">
                 Vai trò của bạn trong trường
               </label>
               <div className="grid grid-cols-3 gap-2">
@@ -173,19 +207,48 @@ export const RegisterPage = () => {
                       key={item.id}
                       type="button"
                       onClick={() => setSelectedRole(item.id)}
-                      className={`flex flex-col items-center justify-center p-3 rounded-xl border text-xs font-bold transition-all ${
+                      className={`flex flex-col items-center justify-center p-2.5 rounded-xl border text-xs font-bold transition-all ${
                         isSelected
                           ? 'border-emerald-600 bg-emerald-50 text-emerald-800 shadow-sm'
                           : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100'
                       }`}
                     >
-                      <Icon className={`w-5 h-5 mb-1 ${isSelected ? 'text-emerald-600' : 'text-slate-400'}`} />
+                      <Icon className={`w-4 h-4 mb-1 ${isSelected ? 'text-emerald-600' : 'text-slate-400'}`} />
                       <span>{item.label}</span>
                     </button>
                   );
                 })}
               </div>
             </div>
+
+            {selectedRole === 'student' && (
+              <div className="grid grid-cols-2 gap-2 p-3 bg-slate-50 rounded-xl border border-slate-100">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-600 mb-1">Khối lớp:</label>
+                  <select
+                    value={gradeLevel}
+                    onChange={(e) => setGradeLevel(e.target.value)}
+                    className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold"
+                  >
+                    <option value={6}>Khối 6</option>
+                    <option value={7}>Khối 7</option>
+                    <option value={8}>Khối 8</option>
+                    <option value={9}>Khối 9</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-600 mb-1">Tên lớp:</label>
+                  <input
+                    type="text"
+                    required
+                    value={className}
+                    onChange={(e) => setClassName(e.target.value)}
+                    placeholder="Ví dụ: 7A1"
+                    className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold"
+                  />
+                </div>
+              </div>
+            )}
 
             <button
               type="submit"
@@ -199,7 +262,7 @@ export const RegisterPage = () => {
                 </>
               ) : (
                 <>
-                  <span>Hoàn Tất Đăng Ký</span>
+                  <span>Hoàn Tất Đăng Ký Tài Khoản</span>
                   <ArrowRight className="w-4 h-4" />
                 </>
               )}
@@ -210,7 +273,7 @@ export const RegisterPage = () => {
             <p className="text-xs text-slate-500">
               Đã có tài khoản?{' '}
               <Link to="/login" className="font-bold text-emerald-600 hover:text-emerald-700">
-                Đăng nhập ngay
+                Đăng nhập bằng Username ngay
               </Link>
             </p>
           </div>
