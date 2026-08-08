@@ -913,48 +913,123 @@
         </section>
     </main>
 
-    <!-- GOOGLE LOGIN MODAL -->
+    <!-- AUTHENTICATION MODAL (ĐĂNG NHẬP & ĐĂNG KÝ VỚI USERNAME / PASSWORD) -->
     <div class="modal-backdrop hidden" id="loginModal">
-        <div class="modal-dialog">
+        <div class="modal-dialog auth-modal-dialog">
             <button class="modal-close" onclick="closeLoginModal()">&times;</button>
-            <div class="modal-header-icon">
-                <i class="fa-brands fa-google"></i>
-            </div>
-            <h2>Đăng Nhập Google SSO</h2>
-            <p class="modal-desc">Sử dụng tài khoản Google để truy cập hệ thống Hành Trình Số</p>
-
-            <form onsubmit="handleGoogleLogin(event)">
-                <div class="form-group">
-                    <label>Họ và tên học sinh / giáo viên:</label>
-                    <input type="text" id="loginFullName" class="form-control" placeholder="Ví dụ: Huỳnh Ngân Giang" required>
-                </div>
-                <div class="form-group">
-                    <label>Địa chỉ Email Google:</label>
-                    <input type="email" id="loginEmail" class="form-control" placeholder="ngangiang@gmail.com" required>
-                </div>
-                <div class="form-row">
-                    <div class="form-group col-half">
-                        <label>Vai trò:</label>
-                        <select id="loginRole" class="form-control" onchange="onRoleChange(this.value)">
-                            <option value="Học sinh">Học sinh</option>
-                            <option value="Giáo viên">Giáo viên</option>
-                            <option value="Quản trị viên">Quản trị viên</option>
-                        </select>
-                    </div>
-                    <div class="form-group col-half" id="gradeSelectGroup">
-                        <label>Khối lớp:</label>
-                        <select id="loginGrade" class="form-control">
-                            <option value="6">Khối 6</option>
-                            <option value="7" selected>Khối 7</option>
-                            <option value="8">Khối 8</option>
-                            <option value="9">Khối 9</option>
-                        </select>
-                    </div>
-                </div>
-                <button type="submit" class="btn-google-action">
-                    <i class="fa-brands fa-google"></i> Tiếp tục với Google
+            
+            <!-- AUTH TABS SWITCHER -->
+            <div class="auth-tabs-header">
+                <button class="auth-tab-btn active" id="tabBtnLogin" onclick="switchAuthMode('login')">
+                    <i class="fa-solid fa-right-to-bracket"></i> Đăng Nhập
                 </button>
-            </form>
+                <button class="auth-tab-btn" id="tabBtnRegister" onclick="switchAuthMode('register')">
+                    <i class="fa-solid fa-user-plus"></i> Đăng Ký Tài Khoản
+                </button>
+            </div>
+
+            <!-- 1. FORM ĐĂNG NHẬP (SIGN IN) -->
+            <div class="auth-form-body" id="formLoginBody">
+                <div class="modal-header-icon bg-login-icon">
+                    <i class="fa-solid fa-shield-halved"></i>
+                </div>
+                <h2>Đăng Nhập Hành Trình Số</h2>
+                <p class="modal-desc">Sử dụng Tên đăng nhập và Mật khẩu đã lưu trên Supabase Database</p>
+
+                <form id="formSignIn" onsubmit="handleUserLogin(event)">
+                    <div class="form-group">
+                        <label><i class="fa-solid fa-user"></i> Tên đăng nhập (Username):</label>
+                        <input type="text" id="loginUsername" class="form-control" placeholder="Ví dụ: ngangiang hoặc an_7a1" required autocomplete="username">
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fa-solid fa-lock"></i> Mật khẩu (Password):</label>
+                        <div class="password-input-wrapper">
+                            <input type="password" id="loginPassword" class="form-control" placeholder="Nhập mật khẩu..." required autocomplete="current-password">
+                            <i class="fa-solid fa-eye eye-toggle" onclick="togglePasswordVisibility('loginPassword', this)"></i>
+                        </div>
+                    </div>
+                    
+                    <div class="auth-options-row">
+                        <label class="remember-me">
+                            <input type="checkbox" id="rememberMe" checked> Ghi nhớ đăng nhập
+                        </label>
+                        <span class="auth-switch-link" onclick="switchAuthMode('register')">Chưa có tài khoản? Đăng ký</span>
+                    </div>
+
+                    <button type="submit" class="btn-auth-action" id="btnSignInSubmit">
+                        <i class="fa-solid fa-arrow-right-to-bracket"></i> Đăng Nhập Ngay
+                    </button>
+                </form>
+                <div id="loginAlertMsg" class="auth-alert hidden"></div>
+            </div>
+
+            <!-- 2. FORM ĐĂNG KÝ (SIGN UP) -->
+            <div class="auth-form-body hidden" id="formRegisterBody">
+                <div class="modal-header-icon bg-reg-icon">
+                    <i class="fa-solid fa-user-graduate"></i>
+                </div>
+                <h2>Tạo Tài Khoản Học Sinh / Giáo Viên</h2>
+                <p class="modal-desc">Dữ liệu tài khoản sẽ được đồng bộ và bảo mật trên Supabase Database</p>
+
+                <form id="formSignUp" onsubmit="handleUserRegister(event)">
+                    <div class="form-row">
+                        <div class="form-group col-half">
+                            <label><i class="fa-solid fa-at"></i> Tên đăng nhập (Username):</label>
+                            <input type="text" id="regUsername" class="form-control" placeholder="Ví dụ: nam_8a2" required autocomplete="username">
+                        </div>
+                        <div class="form-group col-half">
+                            <label><i class="fa-solid fa-signature"></i> Họ và tên đầy đủ:</label>
+                            <input type="text" id="regFullName" class="form-control" placeholder="Ví dụ: Lê Hoàng Nam" required>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group col-half">
+                            <label><i class="fa-solid fa-lock"></i> Mật khẩu (Tối thiểu 6 ký tự):</label>
+                            <div class="password-input-wrapper">
+                                <input type="password" id="regPassword" class="form-control" placeholder="Mật khẩu..." required minlength="6" autocomplete="new-password">
+                                <i class="fa-solid fa-eye eye-toggle" onclick="togglePasswordVisibility('regPassword', this)"></i>
+                            </div>
+                        </div>
+                        <div class="form-group col-half">
+                            <label><i class="fa-solid fa-shield-check"></i> Xác nhận mật khẩu:</label>
+                            <div class="password-input-wrapper">
+                                <input type="password" id="regPasswordConfirm" class="form-control" placeholder="Nhập lại..." required minlength="6" autocomplete="new-password">
+                                <i class="fa-solid fa-eye eye-toggle" onclick="togglePasswordVisibility('regPasswordConfirm', this)"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group col-half">
+                            <label><i class="fa-solid fa-user-tag"></i> Vai trò trong trường:</label>
+                            <select id="regRole" class="form-control" onchange="onRegRoleChange(this.value)">
+                                <option value="STUDENT" selected>Học sinh THCS Phú Bình</option>
+                                <option value="TEACHER">Giáo viên / Giảng dạy</option>
+                            </select>
+                        </div>
+                        <div class="form-group col-half" id="regGradeGroup">
+                            <label><i class="fa-solid fa-layer-group"></i> Khối lớp:</label>
+                            <select id="regGrade" class="form-control">
+                                <option value="6">Khối 6</option>
+                                <option value="7" selected>Khối 7</option>
+                                <option value="8">Khối 8</option>
+                                <option value="9">Khối 9</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group" id="regClassGroup">
+                        <label><i class="fa-solid fa-school"></i> Tên lớp học:</label>
+                        <input type="text" id="regClassName" class="form-control" placeholder="Ví dụ: 7A1 hoặc 8B2" required>
+                    </div>
+
+                    <button type="submit" class="btn-auth-action btn-reg-submit" id="btnSignUpSubmit">
+                        <i class="fa-solid fa-user-check"></i> Hoàn Tất Đăng Ký Tài Khoản
+                    </button>
+                </form>
+                <div id="regAlertMsg" class="auth-alert hidden"></div>
+            </div>
         </div>
     </div>
 

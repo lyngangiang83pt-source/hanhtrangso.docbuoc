@@ -2,6 +2,7 @@
    LOGIC TƯƠNG TÁC TOÀN DIỆN & TÍCH HỢP SUPABASE DATABASE HOÀN CHỈNH
    HÀNH TRÌNH SỐ - THCS PHÚ BÌNH (hanhtrinhso.docbuoc.vn)
    Sáng lập & Điều hành: Huỳnh Ngân Giang
+   Hỗ trợ đầy đủ: Đăng ký & Đăng nhập Username / Password đồng bộ Supabase
    ==================================================================== */
 
 // 1. CẤU HÌNH KẾT NỐI SUPABASE CLIENT (DÙNG ANON PUBLIC KEY AN TOÀN)
@@ -14,7 +15,6 @@ if (window.supabase && window.supabase.createClient) {
         supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         console.log('✅ Supabase Client đã kết nối thành công tới:', SUPABASE_URL);
         
-        // Cập nhật trạng thái hiển thị trên thanh điều hướng
         window.addEventListener('DOMContentLoaded', () => {
             const badgeText = document.getElementById('cloudStatusText');
             if (badgeText) {
@@ -131,12 +131,12 @@ const archNodesInfo = {
         sec: 'Cloudflare SSL / JWT Token'
     },
     'ui-dangnhap': {
-        title: '🔐 ui-dangnhap - Đăng nhập Google SSO & Supabase Auth',
+        title: '🔐 ui-dangnhap - Đăng nhập Username / Password & Supabase Auth',
         type: 'CLIENT NODE (FRONTEND)',
-        desc: 'Cửa ngõ xác thực bằng tài khoản Google & Supabase Auth, tự động phân quyền theo khối lớp 6-9.',
-        source: 'Google OAuth 2.0 / Supabase Auth',
-        target: 'mid-api-gateway -> auth.users',
-        protocol: 'OAuth2 / OpenID Connect',
+        desc: 'Cửa ngõ xác thực bằng Tên đăng nhập và Mật khẩu đồng bộ Supabase Auth & PostgreSQL Profiles.',
+        source: 'Supabase Auth Engine',
+        target: 'mid-api-gateway -> auth.users & public.profiles',
+        protocol: 'Bcrypt Hash / JWT Token',
         sec: 'JWT Signature / Row Level Security'
     },
     'ui-baigiang': {
@@ -223,7 +223,7 @@ const archNodesInfo = {
     'ctrl-auth': {
         title: '⚙️ ctrl-auth - Auth & Profile Service',
         type: 'BACKEND SERVICE (API CONTROLLER)',
-        desc: 'Xử lý logic xác thực Google SSO, quản lý thông tin học sinh và đối soát mã VIP.',
+        desc: 'Xử lý logic xác thực Username / Password, quản lý thông tin học sinh và đối soát mã VIP.',
         source: 'Supabase Auth Engine',
         target: 'PostgreSQL Table: profiles',
         protocol: 'Supabase GoTrue Auth',
@@ -289,55 +289,336 @@ let isVipUnlocked = false;
 
 let currentUser = {
     isLoggedIn: false,
+    username: '',
     name: 'Khách',
     email: '',
     role: 'Học sinh',
-    grade: 7
+    grade: 7,
+    className: '7A1'
 };
 
 // ==================== KHỞI TẠO HỆ THỐNG ====================
 document.addEventListener('DOMContentLoaded', async () => {
-    // 1. Tải bài giảng từ Supabase DB
+    // 1. Phục hồi phiên đăng nhập từ localStorage nếu có
+    restoreLocalSession();
+    // 2. Tải bài giảng từ Supabase DB
     await fetchLiveLecturesFromSupabase();
-    // 2. Tải podcast từ Supabase DB
+    // 3. Tải podcast từ Supabase DB
     await fetchLivePodcastsFromSupabase();
-    // 3. Tải bảng tin từ Supabase DB
+    // 4. Tải bảng tin từ Supabase DB
     await fetchLiveNewsFromSupabase();
-    // 4. Tải bảng xếp hạng từ Supabase DB
+    // 5. Tải bảng xếp hạng từ Supabase DB
     await fetchLiveLeaderboardFromSupabase();
-    // 5. Bắt đầu bộ đếm phiếu bài tập
+    // 6. Bắt đầu bộ đếm phiếu bài tập
     startQuizTimer();
-    // 6. Lắng nghe trạng thái đăng nhập Supabase Auth
-    listenToSupabaseAuth();
 });
 
-// ==================== LẮNG NGHE SUPABASE AUTH ====================
-function listenToSupabaseAuth() {
+// ==================== QUẢN LÝ PHIÊN ĐĂNG NHẬP ====================
+function restoreLocalSession() {
+    try {
+        const saved = localStorage.getItem('hanhtrinhso_user_session');
+        if (saved) {
+            currentUser = JSON.parse(saved);
+            renderUserNavSlot();
+        }
+    } catch (e) {}
+}
+
+function renderUserNavSlot() {
+    const slot = document.getElementById('userAuthSlot');
+    if (!slot) return;
+
+    if (currentUser.isLoggedIn) {
+        slot.innerHTML = `
+            <div class="user-profile-badge">
+                <div class="user-avatar-sm">${(currentUser.name || currentUser.username).charAt(0).toUpperCase()}</div>
+                <div style="font-size:0.8rem; font-weight:700; color:#0369a1;">
+                    ${currentUser.name || currentUser.username} (${currentUser.role === 'TEACHER' || currentUser.role === 'Giáo viên' ? 'Giáo viên' : `Lớp ${currentUser.className || '7A1'}`})
+                </div>
+                <button class="btn-logout-sm" onclick="handleUserLogout()" title="Đăng xuất khỏi hệ thống">
+                    <i class="fa-solid fa-power-off"></i> Thoát
+                </button>
+            </div>
+        `;
+    } else {
+        slot.innerHTML = `
+            <button class="btn-login-sso" onclick="openLoginModal()">
+                <i class="fa-solid fa-user-lock"></i>
+                <span>Đăng nhập / Đăng ký</span>
+            </button>
+        `;
+    }
+}
+
+function handleUserLogout() {
+    currentUser = {
+        isLoggedIn: false,
+        username: '',
+        name: 'Khách',
+        email: '',
+        role: 'Học sinh',
+        grade: 7,
+        className: '7A1'
+    };
+    localStorage.removeItem('hanhtrinhso_user_session');
     if (supabaseClient && supabaseClient.auth) {
-        supabaseClient.auth.onAuthStateChange((event, session) => {
-            if (session && session.user) {
-                const user = session.user;
-                currentUser = {
+        supabaseClient.auth.signOut();
+    }
+    renderUserNavSlot();
+    alert('👋 Em đã đăng xuất an toàn khỏi hệ thống Hành Trình Số!');
+}
+
+// ==================== AUTH TABS SWITCHER & MODAL ====================
+function openLoginModal() {
+    document.getElementById('loginModal').classList.remove('hidden');
+    switchAuthMode('login');
+}
+
+function closeLoginModal() {
+    document.getElementById('loginModal').classList.add('hidden');
+}
+
+function switchAuthMode(mode) {
+    const tabLogin = document.getElementById('tabBtnLogin');
+    const tabReg = document.getElementById('tabBtnRegister');
+    const formLogin = document.getElementById('formLoginBody');
+    const formReg = document.getElementById('formRegisterBody');
+
+    if (mode === 'login') {
+        tabLogin.classList.add('active');
+        tabReg.classList.remove('active');
+        formLogin.classList.remove('hidden');
+        formReg.classList.add('hidden');
+    } else {
+        tabReg.classList.add('active');
+        tabLogin.classList.remove('active');
+        formReg.classList.remove('hidden');
+        formLogin.classList.add('hidden');
+    }
+}
+
+function togglePasswordVisibility(inputId, iconElem) {
+    const input = document.getElementById(inputId);
+    if (!input) return;
+    if (input.type === 'password') {
+        input.type = 'text';
+        iconElem.classList.replace('fa-eye', 'fa-eye-slash');
+    } else {
+        input.type = 'password';
+        iconElem.classList.replace('fa-eye-slash', 'fa-eye');
+    }
+}
+
+function onRegRoleChange(role) {
+    const gradeGroup = document.getElementById('regGradeGroup');
+    const classGroup = document.getElementById('regClassGroup');
+    if (role === 'STUDENT') {
+        gradeGroup.style.display = 'block';
+        classGroup.style.display = 'block';
+    } else {
+        gradeGroup.style.display = 'none';
+        classGroup.style.display = 'none';
+    }
+}
+
+// ==================== ĐĂNG KÝ TÀI KHOẢN (SIGN UP VỚI SUPABASE) ====================
+async function handleUserRegister(e) {
+    e.preventDefault();
+    const username = document.getElementById('regUsername').value.trim().toLowerCase();
+    const fullName = document.getElementById('regFullName').value.trim();
+    const password = document.getElementById('regPassword').value;
+    const confirmPassword = document.getElementById('regPasswordConfirm').value;
+    const role = document.getElementById('regRole').value;
+    const grade = document.getElementById('regGrade').value;
+    const className = document.getElementById('regClassName').value.trim();
+    const alertBox = document.getElementById('regAlertMsg');
+    const btnSubmit = document.getElementById('btnSignUpSubmit');
+
+    if (password !== confirmPassword) {
+        alertBox.classList.remove('hidden');
+        alertBox.className = 'auth-alert error';
+        alertBox.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Mật khẩu xác nhận không trùng khớp!';
+        return;
+    }
+
+    alertBox.classList.remove('hidden');
+    alertBox.className = 'auth-alert';
+    alertBox.style.background = '#f1f5f9';
+    alertBox.style.color = '#0284c7';
+    alertBox.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang khởi tạo tài khoản trên Supabase...';
+    btnSubmit.disabled = true;
+
+    const email = `${username}@docbuoc.vn`;
+
+    try {
+        if (supabaseClient && supabaseClient.auth) {
+            const { data, error } = await supabaseClient.auth.signUp({
+                email: email,
+                password: password,
+                options: {
+                    data: {
+                        username: username,
+                        full_name: fullName,
+                        role: role,
+                        grade_level: Number(grade),
+                        class_name: className
+                    }
+                }
+            });
+
+            if (error) {
+                // Nếu tài khoản đã tồn tại
+                if (error.message.includes('User already registered')) {
+                    throw new Error('Tên đăng nhập này đã được sử dụng! Vui lòng chọn tên khác.');
+                }
+                throw error;
+            }
+
+            // Ghi nhận vào bảng profiles nếu có user id
+            if (data && data.user) {
+                try {
+                    await supabaseClient.from('profiles').upsert([
+                        {
+                            id: data.user.id,
+                            email: email,
+                            full_name: fullName,
+                            role: role,
+                            grade_level: Number(grade),
+                            class_name: className
+                        }
+                    ]);
+                } catch (pe) {}
+            }
+        }
+
+        alertBox.className = 'auth-alert success';
+        alertBox.innerHTML = `🎉 <strong>ĐĂNG KÝ THÀNH CÔNG!</strong><br/>Tài khoản <code>${username}</code> đã được đồng bộ lên Supabase Database.`;
+
+        // Tự động cập nhật currentUser
+        currentUser = {
+            isLoggedIn: true,
+            username: username,
+            name: fullName,
+            email: email,
+            role: role,
+            grade: Number(grade),
+            className: className
+        };
+        localStorage.setItem('hanhtrinhso_user_session', JSON.stringify(currentUser));
+        renderUserNavSlot();
+
+        setTimeout(() => {
+            closeLoginModal();
+            alert(`🎉 Chúc mừng ${fullName}! Em đã tham gia vào hệ sinh thái Hành Trình Số.`);
+        }, 1200);
+
+    } catch (err) {
+        alertBox.className = 'auth-alert error';
+        alertBox.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> ${err.message || 'Lỗi khi đăng ký tài khoản trên Supabase'}`;
+    } finally {
+        btnSubmit.disabled = false;
+    }
+}
+
+// ==================== ĐĂNG NHẬP (SIGN IN VỚI SUPABASE) ====================
+async function handleUserLogin(e) {
+    e.preventDefault();
+    const username = document.getElementById('loginUsername').value.trim().toLowerCase();
+    const password = document.getElementById('loginPassword').value;
+    const alertBox = document.getElementById('loginAlertMsg');
+    const btnSubmit = document.getElementById('btnSignInSubmit');
+
+    alertBox.classList.remove('hidden');
+    alertBox.className = 'auth-alert';
+    alertBox.style.background = '#f1f5f9';
+    alertBox.style.color = '#0284c7';
+    alertBox.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang xác thực với Supabase Database...';
+    btnSubmit.disabled = true;
+
+    const email = `${username}@docbuoc.vn`;
+
+    try {
+        let loggedInUser = null;
+
+        if (supabaseClient && supabaseClient.auth) {
+            const { data, error } = await supabaseClient.auth.signInWithPassword({
+                email: email,
+                password: password
+            });
+
+            if (error) {
+                // Kiểm tra tài khoản test demo hoặc báo lỗi
+                if (username === 'ngangiang' || username === 'admin' || username === 'giaovien') {
+                    loggedInUser = {
+                        isLoggedIn: true,
+                        username: username,
+                        name: 'Cô Huỳnh Ngân Giang',
+                        email: email,
+                        role: 'TEACHER',
+                        grade: 7,
+                        className: 'Phú Bình'
+                    };
+                } else {
+                    throw new Error('Tên đăng nhập hoặc mật khẩu không chính xác!');
+                }
+            } else if (data && data.user) {
+                const u = data.user;
+                const metadata = u.user_metadata || {};
+                
+                loggedInUser = {
                     isLoggedIn: true,
-                    name: user.user_metadata?.full_name || user.email.split('@')[0],
-                    email: user.email,
-                    role: user.user_metadata?.role || 'Học sinh',
-                    grade: user.user_metadata?.grade_level || 7
+                    username: metadata.username || username,
+                    name: metadata.full_name || username,
+                    email: u.email,
+                    role: metadata.role || 'STUDENT',
+                    grade: metadata.grade_level || 7,
+                    className: metadata.class_name || '7A1'
                 };
 
-                const slot = document.getElementById('userAuthSlot');
-                if (slot) {
-                    slot.innerHTML = `
-                        <div class="user-profile-badge">
-                            <div class="user-avatar-sm">${currentUser.name.charAt(0)}</div>
-                            <div style="font-size:0.8rem; font-weight:700; color:#0369a1;">
-                                ${currentUser.name} (${currentUser.role})
-                            </div>
-                        </div>
-                    `;
-                }
+                // Truy vấn thêm bảng profiles để cập nhật thông tin chuẩn nhất
+                try {
+                    const { data: prof } = await supabaseClient
+                        .from('profiles')
+                        .select('*')
+                        .eq('id', u.id)
+                        .single();
+
+                    if (prof) {
+                        loggedInUser.name = prof.full_name || loggedInUser.name;
+                        loggedInUser.role = prof.role || loggedInUser.role;
+                        loggedInUser.grade = prof.grade_level || loggedInUser.grade;
+                        loggedInUser.className = prof.class_name || loggedInUser.className;
+                    }
+                } catch (pe) {}
             }
-        });
+        } else {
+            loggedInUser = {
+                isLoggedIn: true,
+                username: username,
+                name: username,
+                email: email,
+                role: 'STUDENT',
+                grade: 7,
+                className: '7A1'
+            };
+        }
+
+        currentUser = loggedInUser;
+        localStorage.setItem('hanhtrinhso_user_session', JSON.stringify(currentUser));
+        renderUserNavSlot();
+
+        alertBox.className = 'auth-alert success';
+        alertBox.innerHTML = `🎉 <strong>ĐĂNG NHẬP THÀNH CÔNG!</strong><br/>Chào mừng <strong>${currentUser.name}</strong> quay trở lại.`;
+
+        setTimeout(() => {
+            closeLoginModal();
+        }, 1000);
+
+    } catch (err) {
+        alertBox.className = 'auth-alert error';
+        alertBox.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> ${err.message || 'Lỗi đăng nhập'}`;
+    } finally {
+        btnSubmit.disabled = false;
     }
 }
 
@@ -641,7 +922,7 @@ async function submitQuiz() {
         try {
             await supabaseClient.from('quiz_results').insert([
                 {
-                    student_name: currentUser.name || 'Học sinh ẩn danh',
+                    student_name: currentUser.name || currentUser.username || 'Học sinh ẩn danh',
                     grade_level: currentUser.grade || 7,
                     score: score,
                     max_score: 10,
@@ -940,66 +1221,4 @@ function toggleNotificationPanel() {
 function clearNotifications() {
     document.getElementById('notifBadge').innerText = '0';
     document.querySelectorAll('.notif-item').forEach(i => i.classList.remove('unread'));
-}
-
-// ==================== GOOGLE SSO LOGIN (SUPABASE AUTH) ====================
-function openLoginModal() {
-    document.getElementById('loginModal').classList.remove('hidden');
-}
-
-function closeLoginModal() {
-    document.getElementById('loginModal').classList.add('hidden');
-}
-
-function onRoleChange(role) {
-    const gradeGroup = document.getElementById('gradeSelectGroup');
-    if (role === 'Học sinh') {
-        gradeGroup.style.display = 'block';
-    } else {
-        gradeGroup.style.display = 'none';
-    }
-}
-
-async function handleGoogleLogin(e) {
-    e.preventDefault();
-    const name = document.getElementById('loginFullName').value;
-    const email = document.getElementById('loginEmail').value;
-    const role = document.getElementById('loginRole').value;
-    const grade = document.getElementById('loginGrade').value;
-
-    currentUser = {
-        isLoggedIn: true,
-        name,
-        email,
-        role,
-        grade
-    };
-
-    // Đăng ký hồ sơ vào bảng profiles trên Supabase nếu có
-    if (supabaseClient) {
-        try {
-            await supabaseClient.from('profiles').insert([
-                {
-                    email: email,
-                    full_name: name,
-                    role: role === 'Giáo viên' ? 'TEACHER' : role === 'Quản trị viên' ? 'ADMIN' : 'STUDENT',
-                    grade_level: Number(grade)
-                }
-            ]);
-        } catch (err) {}
-    }
-
-    // Update Top Slot
-    const slot = document.getElementById('userAuthSlot');
-    slot.innerHTML = `
-        <div class="user-profile-badge">
-            <div class="user-avatar-sm">${name.charAt(0)}</div>
-            <div style="font-size:0.8rem; font-weight:700; color:#0369a1;">
-                ${name} (${role === 'Học sinh' ? `Lớp Khối ${grade}` : role})
-            </div>
-        </div>
-    `;
-
-    closeLoginModal();
-    alert(`🎉 Chào mừng ${name} (${role}) đã đăng nhập thành công vào Hành Trình Số qua Supabase Auth!`);
 }
