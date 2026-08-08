@@ -22,20 +22,19 @@ export const Sidebar = () => {
     if (role === 'admin') {
       return [
         { to: '/admin', label: 'Bảng Điều Khiển Admin', icon: LayoutDashboard },
-        { to: '/admin/users', label: 'Quản Lý Người Dùng', icon: Users },
-        { to: '/admin/classes', label: 'Tất Cả Lớp Học', icon: School },
-        { to: '/materials', label: 'Kho Học Liệu & Game', icon: FileText },
-        { to: '/admin/reports', label: 'Báo Cáo Hệ Thống', icon: BarChart3 }
+        { to: '/teacher/subjects', label: 'Quản Lý Môn Học', icon: Layers },
+        { to: '/admin', label: 'Quản Lý Người Dùng', icon: Users },
+        { to: '/admin', label: 'Tất Cả Lớp Học', icon: School },
+        { to: '/explore', label: 'Kho Học Liệu & Game', icon: FileText }
       ];
     }
     if (role === 'teacher') {
       return [
         { to: '/teacher', label: 'Tổng Quan Giảng Dạy', icon: LayoutDashboard },
-        { to: '/teacher/classes', label: 'Lớp Học Của Tôi', icon: School },
-        { to: '/materials', label: 'Kho Học Liệu & Game', icon: FileText },
+        { to: '/teacher/subjects', label: 'Quản Lý Môn Học', icon: Layers },
+        { to: '/teacher', label: 'Lớp Học Của Tôi', icon: School },
         { to: '/teacher/materials/new', label: 'Tải Lên File / Nhúng Game', icon: UploadCloud },
-        { to: '/teacher/assignments', label: 'Giao Bài & Hạn Chót', icon: ClipboardList },
-        { to: '/teacher/analytics', label: 'Bảng Điểm & Thống Kê', icon: BarChart3 }
+        { to: '/explore', label: 'Kho Học Liệu & Game', icon: FileText }
       ];
     }
     // Student

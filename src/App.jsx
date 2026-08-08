@@ -4,21 +4,23 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { Navbar } from './components/common/Navbar';
 import { Sidebar } from './components/common/Sidebar';
 import { ProtectedRoute } from './components/common/ProtectedRoute';
+import { HomePage } from './pages/public/HomePage';
 import { LoginPage } from './pages/auth/LoginPage';
 import { RegisterPage } from './pages/auth/RegisterPage';
 import { AdminDashboard } from './pages/admin/AdminDashboard';
 import { TeacherDashboard } from './pages/teacher/TeacherDashboard';
 import { ClassDetailView } from './pages/teacher/ClassDetailView';
 import { MaterialManager } from './pages/teacher/MaterialManager';
+import { SubjectManager } from './pages/teacher/SubjectManager';
 import { StudentDashboard } from './pages/student/StudentDashboard';
 import { GamePlayer } from './pages/student/GamePlayer';
 import { MaterialViewer } from './pages/student/MaterialViewer';
 
-// Root Redirector based on real User Role
-const HomeRedirector = () => {
+// Root Dispatcher
+const RootRoute = () => {
   const { user, role, loading } = useAuth();
   if (loading) return null;
-  if (!user) return <Navigate to="/login" replace />;
+  if (!user) return <HomePage />;
   if (role === 'admin') return <Navigate to="/admin" replace />;
   if (role === 'teacher') return <Navigate to="/teacher" replace />;
   return <Navigate to="/student" replace />;
@@ -43,12 +45,11 @@ export const App = () => {
     <AuthProvider>
       <BrowserRouter>
         <Routes>
-          {/* Public Auth Routes */}
+          {/* Public Routes */}
+          <Route path="/" element={<RootRoute />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
-
-          {/* Root Role-based Redirect */}
-          <Route path="/" element={<HomeRedirector />} />
+          <Route path="/explore" element={<HomePage />} />
 
           {/* Admin Routes */}
           <Route
@@ -69,6 +70,16 @@ export const App = () => {
               <ProtectedRoute allowedRoles={['teacher', 'admin']}>
                 <MainLayout>
                   <TeacherDashboard />
+                </MainLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/teacher/subjects"
+            element={
+              <ProtectedRoute allowedRoles={['teacher', 'admin']}>
+                <MainLayout>
+                  <SubjectManager />
                 </MainLayout>
               </ProtectedRoute>
             }
@@ -105,30 +116,8 @@ export const App = () => {
               </ProtectedRoute>
             }
           />
-
-          {/* Shared Materials & Games */}
           <Route
-            path="/materials"
-            element={
-              <ProtectedRoute allowedRoles={['student', 'teacher', 'admin']}>
-                <MainLayout>
-                  <MaterialManager />
-                </MainLayout>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/materials/:materialId"
-            element={
-              <ProtectedRoute allowedRoles={['student', 'teacher', 'admin']}>
-                <MainLayout>
-                  <MaterialViewer />
-                </MainLayout>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/games/:assignmentId"
+            path="/student/game/:materialId"
             element={
               <ProtectedRoute allowedRoles={['student', 'teacher', 'admin']}>
                 <MainLayout>
@@ -137,13 +126,22 @@ export const App = () => {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/student/materials/:id"
+            element={
+              <ProtectedRoute allowedRoles={['student', 'teacher', 'admin']}>
+                <MainLayout>
+                  <MaterialViewer />
+                </MainLayout>
+              </ProtectedRoute>
+            }
+          />
 
-          {/* Fallback */}
+          {/* Fallback Catch-all Route */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>
   );
 };
-
 export default App;

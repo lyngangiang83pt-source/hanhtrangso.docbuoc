@@ -56,7 +56,22 @@ CREATE TABLE public.class_members (
 );
 
 -- ====================================================================
--- 5. BẢNG KHO HỌC LIỆU & GAME (MATERIALS)
+-- 5. BẢNG QUẢN LÝ MÔN HỌC (SUBJECTS - THÊM, SỬA, XÓA ĐỒNG BỘ SUPABASE)
+-- ====================================================================
+CREATE TABLE public.subjects (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(150) NOT NULL,
+    code VARCHAR(50) UNIQUE NOT NULL,
+    grade_level INT DEFAULT 7 CHECK (grade_level BETWEEN 6 AND 9),
+    description TEXT,
+    icon TEXT DEFAULT 'BookOpen',
+    color TEXT DEFAULT 'emerald',
+    teacher_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- ====================================================================
+-- 6. BẢNG KHO HỌC LIỆU & GAME (MATERIALS)
 -- ====================================================================
 CREATE TABLE public.materials (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -65,6 +80,7 @@ CREATE TABLE public.materials (
     file_url TEXT NOT NULL,
     type TEXT NOT NULL CHECK (type IN ('document', 'video', 'game_iframe', 'game_html5')),
     author_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+    subject_id UUID REFERENCES public.subjects(id) ON DELETE SET NULL,
     is_public BOOLEAN DEFAULT true,
     grade_level INT DEFAULT 7 CHECK (grade_level BETWEEN 6 AND 9),
     subject TEXT DEFAULT 'Ngữ văn',
