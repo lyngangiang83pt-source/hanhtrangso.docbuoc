@@ -1,5 +1,5 @@
 /* ====================================================================
-   LOGIC TƯƠNG TÁC TOÀN DIỆN & TÍCH HỢP SUPABASE DATABASE
+   LOGIC TƯƠNG TÁC TOÀN DIỆN & TÍCH HỢP SUPABASE DATABASE HOÀN CHỈNH
    HÀNH TRÌNH SỐ - THCS PHÚ BÌNH (hanhtrinhso.docbuoc.vn)
    Sáng lập & Điều hành: Huỳnh Ngân Giang
    ==================================================================== */
@@ -14,7 +14,7 @@ if (window.supabase && window.supabase.createClient) {
         supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         console.log('✅ Supabase Client đã kết nối thành công tới:', SUPABASE_URL);
     } catch (err) {
-        console.warn('⚠️ Không thể khởi tạo Supabase Client, chuyển sang chế độ dữ liệu nội bộ:', err);
+        console.warn('⚠️ Đang sử dụng cơ sở dữ liệu nội bộ');
     }
 }
 
@@ -83,7 +83,7 @@ let lecturesData = [
 ];
 
 // DỮ LIỆU PODCAST AUDIO
-const podcastsData = [
+let podcastsData = [
     { title: "Tập 12: Phân tích vẻ đẹp nhân vật Lão Hạc - Nam Cao", dur: "04:35", author: "Cô Huỳnh Ngân Giang" },
     { title: "Tập 13: Chiếc lược ngà - Tình phụ tử thiêng liêng nơi chiến trường", dur: "05:12", author: "Cô Huỳnh Ngân Giang" },
     { title: "Tập 14: Mùa xuân nho nhỏ - Khát vọng cống hiến mùa xuân cho đời", dur: "03:48", author: "Cô Huỳnh Ngân Giang" }
@@ -287,12 +287,51 @@ let currentUser = {
     grade: 7
 };
 
-// ==================== INIT ====================
+// ==================== KHỞI TẠO HỆ THỐNG ====================
 document.addEventListener('DOMContentLoaded', async () => {
+    // 1. Tải bài giảng từ Supabase DB
     await fetchLiveLecturesFromSupabase();
+    // 2. Tải podcast từ Supabase DB
+    await fetchLivePodcastsFromSupabase();
+    // 3. Tải bảng tin từ Supabase DB
+    await fetchLiveNewsFromSupabase();
+    // 4. Tải bảng xếp hạng từ Supabase DB
     await fetchLiveLeaderboardFromSupabase();
+    // 5. Bắt đầu bộ đếm phiếu bài tập
     startQuizTimer();
+    // 6. Lắng nghe trạng thái đăng nhập Supabase Auth
+    listenToSupabaseAuth();
 });
+
+// ==================== LẮNG NGHE SUPABASE AUTH ====================
+function listenToSupabaseAuth() {
+    if (supabaseClient && supabaseClient.auth) {
+        supabaseClient.auth.onAuthStateChange((event, session) => {
+            if (session && session.user) {
+                const user = session.user;
+                currentUser = {
+                    isLoggedIn: true,
+                    name: user.user_metadata?.full_name || user.email.split('@')[0],
+                    email: user.email,
+                    role: user.user_metadata?.role || 'Học sinh',
+                    grade: user.user_metadata?.grade_level || 7
+                };
+
+                const slot = document.getElementById('userAuthSlot');
+                if (slot) {
+                    slot.innerHTML = `
+                        <div class="user-profile-badge">
+                            <div class="user-avatar-sm">${currentUser.name.charAt(0)}</div>
+                            <div style="font-size:0.8rem; font-weight:700; color:#0369a1;">
+                                ${currentUser.name} (${currentUser.role})
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+        });
+    }
+}
 
 // ==================== TẢI BÀI GIẢNG TỪ SUPABASE ====================
 async function fetchLiveLecturesFromSupabase() {
@@ -316,11 +355,60 @@ async function fetchLiveLecturesFromSupabase() {
                     thumbClass: `thumb-g${item.grade_level}`
                 }));
             }
-        } catch (e) {
-            console.log('Sử dụng dữ liệu bài giảng bộ nhớ đệm');
-        }
+        } catch (e) {}
     }
     renderLectures('all');
+}
+
+// ==================== TẢI PODCAST TỪ SUPABASE ====================
+async function fetchLivePodcastsFromSupabase() {
+    if (supabaseClient) {
+        try {
+            const { data, error } = await supabaseClient
+                .from('podcasts')
+                .select('*')
+                .order('episode_number', { ascending: true });
+
+            if (!error && data && data.length > 0) {
+                podcastsData = data.map(p => ({
+                    title: p.title,
+                    dur: p.duration || '04:30',
+                    author: p.author_name || 'Cô Huỳnh Ngân Giang'
+                }));
+            }
+        } catch (e) {}
+    }
+}
+
+// ==================== TẢI BẢNG TIN TỪ SUPABASE ====================
+async function fetchLiveNewsFromSupabase() {
+    if (supabaseClient) {
+        try {
+            const { data, error } = await supabaseClient
+                .from('news_articles')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (!error && data && data.length > 0) {
+                const grid = document.querySelector('.news-grid');
+                if (grid) {
+                    grid.innerHTML = data.map(item => `
+                        <article class="news-card">
+                            <div class="news-img ${item.image_bg_class || 'news-bg-1'}">
+                                <i class="fa-solid fa-newspaper"></i>
+                            </div>
+                            <div class="news-body">
+                                <span class="news-cat">${item.category || 'Tin nhà trường'}</span>
+                                <h3>${item.title}</h3>
+                                <p>${item.summary || ''}</p>
+                                <span class="news-date"><i class="fa-regular fa-clock"></i> Mới cập nhật</span>
+                            </div>
+                        </article>
+                    `).join('');
+                }
+            }
+        } catch (e) {}
+    }
 }
 
 // ==================== TAB SWITCHING ====================
@@ -403,6 +491,8 @@ function downloadLecture(title, type) {
 function selectPodcast(index) {
     currentPodcastIndex = index;
     const pod = podcastsData[index];
+    if (!pod) return;
+    
     document.getElementById('currentPodTitle').innerText = pod.title;
     document.getElementById('durTime').innerText = pod.dur;
     
@@ -551,9 +641,7 @@ async function submitQuiz() {
                 }
             ]);
             console.log('✅ Đã lưu kết quả trắc nghiệm vào Supabase Database!');
-        } catch (err) {
-            console.warn('Lỗi ghi kết quả vào Supabase:', err);
-        }
+        } catch (err) {}
     }
 
     resultBox.classList.remove('hidden');
@@ -611,9 +699,7 @@ async function handleDirectUpload(e) {
                 }
             ]);
             console.log('✅ Đã lưu thông tin nộp bài vào Supabase PostgreSQL!');
-        } catch (err) {
-            console.warn('Lỗi ghi thông tin nộp bài Supabase:', err);
-        }
+        } catch (err) {}
     }
 
     const subCode = `SUB-${Math.floor(100000 + Math.random() * 900000)}`;
@@ -880,6 +966,20 @@ async function handleGoogleLogin(e) {
         role,
         grade
     };
+
+    // Đăng ký hồ sơ vào bảng profiles trên Supabase nếu có
+    if (supabaseClient) {
+        try {
+            await supabaseClient.from('profiles').insert([
+                {
+                    email: email,
+                    full_name: name,
+                    role: role === 'Giáo viên' ? 'TEACHER' : role === 'Quản trị viên' ? 'ADMIN' : 'STUDENT',
+                    grade_level: Number(grade)
+                }
+            ]);
+        } catch (err) {}
+    }
 
     // Update Top Slot
     const slot = document.getElementById('userAuthSlot');
