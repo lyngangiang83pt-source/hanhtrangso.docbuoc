@@ -60,6 +60,11 @@ while ($listener.IsListening) {
         $relative = $path.TrimStart('/')
         $localFile = [System.IO.Path]::Combine($publicDir, $relative)
 
+        if (-not [System.IO.File]::Exists($localFile)) {
+            # Fallback to SPA index.html
+            $localFile = [System.IO.Path]::Combine($publicDir, "index.html")
+        }
+
         if ([System.IO.File]::Exists($localFile)) {
             $ext = [System.IO.Path]::GetExtension($localFile).ToLower()
             $cType = "application/octet-stream"
