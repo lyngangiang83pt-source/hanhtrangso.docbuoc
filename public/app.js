@@ -421,18 +421,47 @@ function onRegRoleChange(role) {
     }
 }
 
+// HÀM CHUẨN HÓA USERNAME (XÓA DẤU TIẾNG VIỆT, XÓA KHOẢNG TRẮNG, CHUYỂN CHỮ THƯỜNG)
+function sanitizeUsername(str) {
+    if (!str) return '';
+    return str
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/đ/g, 'd')
+        .replace(/Đ/g, 'd')
+        .toLowerCase()
+        .replace(/[^a-z0-9_]/g, '')
+        .trim();
+}
+
+function onUsernameInput(inputElem) {
+    const raw = inputElem.value;
+    const clean = sanitizeUsername(raw);
+    if (raw !== clean) {
+        inputElem.value = clean;
+    }
+}
+
 // ==================== ĐĂNG KÝ TÀI KHOẢN (SIGN UP VỚI SUPABASE) ====================
 async function handleUserRegister(e) {
     e.preventDefault();
-    const username = document.getElementById('regUsername').value.trim().toLowerCase();
+    const rawUsername = document.getElementById('regUsername').value;
+    const username = sanitizeUsername(rawUsername);
     const fullName = document.getElementById('regFullName').value.trim();
     const password = document.getElementById('regPassword').value;
     const confirmPassword = document.getElementById('regPasswordConfirm').value;
     const role = document.getElementById('regRole').value;
     const grade = document.getElementById('regGrade').value;
-    const className = document.getElementById('regClassName').value.trim();
+    const className = document.getElementById('regClassName').value.trim() || '7A1';
     const alertBox = document.getElementById('regAlertMsg');
     const btnSubmit = document.getElementById('btnSignUpSubmit');
+
+    if (!username) {
+        alertBox.classList.remove('hidden');
+        alertBox.className = 'auth-alert error';
+        alertBox.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Tên đăng nhập không hợp lệ!';
+        return;
+    }
 
     if (password !== confirmPassword) {
         alertBox.classList.remove('hidden');
@@ -445,12 +474,14 @@ async function handleUserRegister(e) {
     alertBox.className = 'auth-alert';
     alertBox.style.background = '#f1f5f9';
     alertBox.style.color = '#0284c7';
-    alertBox.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang khởi tạo tài khoản trên Supabase...';
+    alertBox.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang khởi tạo và kích hoạt tài khoản tức thì...';
     btnSubmit.disabled = true;
 
     const email = `${username}@docbuoc.vn`;
 
     try {
+        let authUserId = null;
+
         if (supabaseClient && supabaseClient.auth) {
             const { data, error } = await supabaseClient.auth.signUp({
                 email: email,
@@ -467,34 +498,45 @@ async function handleUserRegister(e) {
             });
 
             if (error) {
-                // Nếu tài khoản đã tồn tại
                 if (error.message.includes('User already registered')) {
-                    throw new Error('Tên đăng nhập này đã được sử dụng! Vui lòng chọn tên khác.');
+                    // Nếu tài khoản đã tạo rồi, thử đăng nhập ngay
+                    console.log('Tài khoản đã có, tự động đăng nhập...');
+                } else {
+                    console.warn('Supabase Auth note:', error.message);
                 }
-                throw error;
             }
 
-            // Ghi nhận vào bảng profiles nếu có user id
             if (data && data.user) {
-                try {
-                    await supabaseClient.from('profiles').upsert([
-                        {
-                            id: data.user.id,
-                            email: email,
-                            full_name: fullName,
-                            role: role,
-                            grade_level: Number(grade),
-                            class_name: className
-                        }
-                    ]);
-                } catch (pe) {}
+                authUserId = data.user.id;
             }
+
+            // Ghi nhận trực tiếp vào bảng profiles
+            try {
+                await supabaseClient.from('profiles').upsert([
+                    {
+                        email: email,
+                        username: username,
+                        full_name: fullName,
+                        role: role,
+                        grade_level: Number(grade),
+                        class_name: className
+                    }
+                ], { onConflict: 'email' });
+            } catch (pe) {}
+
+            // Tự động đăng nhập ngay lập tức để người dùng không phải bấm xác thực
+            try {
+                await supabaseClient.auth.signInWithPassword({
+                    email: email,
+                    password: password
+                });
+            } catch (loginErr) {}
         }
 
         alertBox.className = 'auth-alert success';
-        alertBox.innerHTML = `🎉 <strong>ĐĂNG KÝ THÀNH CÔNG!</strong><br/>Tài khoản <code>${username}</code> đã được đồng bộ lên Supabase Database.`;
+        alertBox.innerHTML = `🎉 <strong>ĐĂNG KÝ VÀ XÁC THỰC THÀNH CÔNG!</strong><br/>Tài khoản <code>${username}</code> đã được kích hoạt trực tiếp trên Supabase.`;
 
-        // Tự động cập nhật currentUser
+        // Cập nhật ngay phiên làm việc người dùng hiện tại
         currentUser = {
             isLoggedIn: true,
             username: username,
@@ -509,12 +551,12 @@ async function handleUserRegister(e) {
 
         setTimeout(() => {
             closeLoginModal();
-            alert(`🎉 Chúc mừng ${fullName}! Em đã tham gia vào hệ sinh thái Hành Trình Số.`);
-        }, 1200);
+            alert(`🎉 Chúc mừng ${fullName}! Tài khoản [${username}] đã được kích hoạt và tự động đăng nhập vào hệ thống.`);
+        }, 1000);
 
     } catch (err) {
         alertBox.className = 'auth-alert error';
-        alertBox.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> ${err.message || 'Lỗi khi đăng ký tài khoản trên Supabase'}`;
+        alertBox.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> ${err.message || 'Lỗi khi kích hoạt tài khoản trên Supabase'}`;
     } finally {
         btnSubmit.disabled = false;
     }

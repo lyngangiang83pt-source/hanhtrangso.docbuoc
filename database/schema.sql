@@ -113,7 +113,23 @@ CREATE INDEX idx_student_progress_assignment ON public.student_progress(assignme
 CREATE INDEX idx_student_progress_student ON public.student_progress(student_id);
 
 -- ====================================================================
--- 9. TRIGGER TỰ ĐỘNG LƯU USER VÀO BẢNG PROFILES KHI ĐĂNG KÝ AUTH
+-- 9. TRIGGER TỰ ĐỘNG XÁC THỰC EMAIL TỨC THÌ (AUTO-CONFIRM NO VERIFICATION NEEDED)
+-- ====================================================================
+CREATE OR REPLACE FUNCTION public.auto_confirm_user()
+RETURNS trigger AS $$
+BEGIN
+    NEW.email_confirmed_at := now();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS on_auth_user_auto_confirm ON auth.users;
+CREATE TRIGGER on_auth_user_auto_confirm
+    BEFORE INSERT ON auth.users
+    FOR EACH ROW EXECUTE FUNCTION public.auto_confirm_user();
+
+-- ====================================================================
+-- 10. TRIGGER TỰ ĐỘNG LƯU USER VÀO BẢNG PROFILES KHI ĐĂNG KÝ AUTH
 -- ====================================================================
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger AS $$
