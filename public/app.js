@@ -13,8 +13,16 @@ if (window.supabase && window.supabase.createClient) {
     try {
         supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         console.log('✅ Supabase Client đã kết nối thành công tới:', SUPABASE_URL);
+        
+        // Cập nhật trạng thái hiển thị trên thanh điều hướng
+        window.addEventListener('DOMContentLoaded', () => {
+            const badgeText = document.getElementById('cloudStatusText');
+            if (badgeText) {
+                badgeText.innerHTML = 'Supabase Cloud: Đã kết nối';
+            }
+        });
     } catch (err) {
-        console.warn('⚠️ Đang sử dụng cơ sở dữ liệu nội bộ');
+        console.warn('⚠️ Đang sử dụng cơ sở dữ liệu nội bộ:', err);
     }
 }
 
