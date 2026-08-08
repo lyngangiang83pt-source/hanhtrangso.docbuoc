@@ -1,6 +1,6 @@
 -- ====================================================================
 -- HÀNH TRÌNH SỐ - THCS PHÚ BÌNH (hanhtrinhso.docbuoc.vn)
--- BẢN MIGRATION SQL CHUẨN XÓA SẠCH VÀ TỰ GÁN ID (AUTO UUID) 100% THÀNH CÔNG
+-- BẢN MIGRATION SQL CHUẨN 100% UUID HỢP LỆ (VALID RFC 4122 HEX UUID)
 -- Dự án Supabase ID: dcmlhyzjkuagjafbvspj
 -- ====================================================================
 
@@ -8,7 +8,7 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
--- 1. XÓA BỎ CÁC BẢNG CŨ ĐỂ KHẮC PHỤC LỖI THIẾU CỘT (DROP CASCADE)
+-- 1. XÓA BẢNG CŨ ĐỂ KHẮC PHỤC TRIỆT ĐỂ MỌI XUNG ĐỘT (DROP CASCADE)
 DROP TABLE IF EXISTS public.student_progress CASCADE;
 DROP TABLE IF EXISTS public.assignments CASCADE;
 DROP TABLE IF EXISTS public.materials CASCADE;
@@ -17,7 +17,7 @@ DROP TABLE IF EXISTS public.classes CASCADE;
 DROP TABLE IF EXISTS public.profiles CASCADE;
 
 -- ====================================================================
--- 2. TẠO BẢNG HỒ SƠ NGƯỜI DÙNG (PROFILES - TỰ GÁN UUID HOẶC AUTH ID)
+-- 2. BẢNG HỒ SƠ NGƯỜI DÙNG (PROFILES)
 -- ====================================================================
 CREATE TABLE public.profiles (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -33,7 +33,7 @@ CREATE TABLE public.profiles (
 );
 
 -- ====================================================================
--- 3. TẠO BẢNG LỚP HỌC (CLASSES - TỰ GÁN ID gen_random_uuid)
+-- 3. BẢNG LỚP HỌC (CLASSES)
 -- ====================================================================
 CREATE TABLE public.classes (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -45,7 +45,7 @@ CREATE TABLE public.classes (
 );
 
 -- ====================================================================
--- 4. TẠO BẢNG THÀNH VIÊN LỚP HỌC (CLASS_MEMBERS - CÓ CỘT class_id RÕ RÀNG)
+-- 4. BẢNG THÀNH VIÊN LỚP HỌC (CLASS_MEMBERS)
 -- ====================================================================
 CREATE TABLE public.class_members (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -56,7 +56,7 @@ CREATE TABLE public.class_members (
 );
 
 -- ====================================================================
--- 5. TẠO BẢNG KHO HỌC LIỆU & GAME (MATERIALS - TỰ GÁN ID)
+-- 5. BẢNG KHO HỌC LIỆU & GAME (MATERIALS)
 -- ====================================================================
 CREATE TABLE public.materials (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -72,7 +72,7 @@ CREATE TABLE public.materials (
 );
 
 -- ====================================================================
--- 6. TẠO BẢNG BÀI TẬP & NHIỆM VỤ GIAO (ASSIGNMENTS - CÓ CỘT class_id)
+-- 6. BẢNG BÀI TẬP & NHIỆM VỤ GIAO (ASSIGNMENTS)
 -- ====================================================================
 CREATE TABLE public.assignments (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -83,7 +83,7 @@ CREATE TABLE public.assignments (
 );
 
 -- ====================================================================
--- 7. TẠO BẢNG TIẾN ĐỘ & ĐIỂM SỐ (STUDENT_PROGRESS - TỰ GÁN ID)
+-- 7. BẢNG TIẾN ĐỘ & ĐIỂM SỐ HỌC SINH (STUDENT_PROGRESS)
 -- ====================================================================
 CREATE TABLE public.student_progress (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -217,16 +217,16 @@ CREATE POLICY "public_read_materials" ON storage.objects FOR SELECT USING (bucke
 CREATE POLICY "public_insert_materials" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'materials');
 
 -- ====================================================================
--- 12. NẠP DỮ LIỆU BAN ĐẦU SẴN SÀNG CHẠY NGAY (SEED DATA)
+-- 12. NẠP DỮ LIỆU BAN ĐẦU SẴN SÀNG CHẠY NGAY (SEED DATA VỚI HEX UUID CHUẨN)
 -- ====================================================================
 
--- 1. Tài khoản mẫu Giáo viên & Học sinh
+-- 1. Tài khoản mẫu Giáo viên & Học sinh (Hex UUID chuẩn 0-9a-f)
 INSERT INTO public.profiles (id, email, username, full_name, role, grade_level, class_name)
 VALUES 
-    ('a0000000-0000-0000-0000-000000000001', 'ngangiang@phubinh.edu.vn', 'ngangiang', 'Cô Huỳnh Ngân Giang', 'teacher', 7, '7A1'),
-    ('a0000000-0000-0000-0000-000000000002', 'admin@phubinh.edu.vn', 'admin', 'Quản Trị Viên THCS Phú Bình', 'admin', 9, 'Admin'),
-    ('a0000000-0000-0000-0000-000000000003', 'nam_8a2@phubinh.edu.vn', 'nam_8a2', 'Lê Hoàng Nam', 'student', 8, '8A2'),
-    ('a0000000-0000-0000-0000-000000000004', 'an_7a1@phubinh.edu.vn', 'an_7a1', 'Nguyễn Văn An', 'student', 7, '7A1')
+    ('11111111-1111-1111-1111-111111111111', 'ngangiang@phubinh.edu.vn', 'ngangiang', 'Cô Huỳnh Ngân Giang', 'teacher', 7, '7A1'),
+    ('22222222-2222-2222-2222-222222222222', 'admin@phubinh.edu.vn', 'admin', 'Quản Trị Viên THCS Phú Bình', 'admin', 9, 'Admin'),
+    ('33333333-3333-3333-3333-333333333333', 'nam_8a2@phubinh.edu.vn', 'nam_8a2', 'Lê Hoàng Nam', 'student', 8, '8A2'),
+    ('44444444-4444-4444-4444-444444444444', 'an_7a1@phubinh.edu.vn', 'an_7a1', 'Nguyễn Văn An', 'student', 7, '7A1')
 ON CONFLICT (id) DO UPDATE SET
     username = EXCLUDED.username,
     full_name = EXCLUDED.full_name,
@@ -235,26 +235,26 @@ ON CONFLICT (id) DO UPDATE SET
 -- 2. Lớp học mẫu với mã Join Code sẵn sàng (PB-7A1 và PB-8A2)
 INSERT INTO public.classes (id, name, description, code, teacher_id)
 VALUES
-    ('c0000000-0000-0000-0000-000000000001', 'Ngữ Văn 7A1 - Phú Bình', 'Lớp học số hóa Ngữ văn 7 tích hợp AI và Game tương tác', 'PB-7A1', 'a0000000-0000-0000-0000-000000000001'),
-    ('c0000000-0000-0000-0000-000000000002', 'Ngữ Văn 8A2 - Phú Bình', 'Lớp bồi dưỡng kỹ năng nghị luận và đọc hiểu văn bản số', 'PB-8A2', 'a0000000-0000-0000-0000-000000000001')
+    ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Ngữ Văn 7A1 - Phú Bình', 'Lớp học số hóa Ngữ văn 7 tích hợp AI và Game tương tác', 'PB-7A1', '11111111-1111-1111-1111-111111111111'),
+    ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'Ngữ Văn 8A2 - Phú Bình', 'Lớp bồi dưỡng kỹ năng nghị luận và đọc hiểu văn bản số', 'PB-8A2', '11111111-1111-1111-1111-111111111111')
 ON CONFLICT (id) DO NOTHING;
 
 -- 3. Gán học sinh vào lớp học
 INSERT INTO public.class_members (class_id, student_id)
 VALUES
-    ('c0000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000004'),
-    ('c0000000-0000-0000-0000-000000000002', 'a0000000-0000-0000-0000-000000000003')
+    ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '44444444-4444-4444-4444-444444444444'),
+    ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', '33333333-3333-3333-3333-333333333333')
 ON CONFLICT DO NOTHING;
 
 -- 4. Học liệu & Trò chơi Wordwall mẫu
 INSERT INTO public.materials (id, title, description, file_url, type, author_id, is_public, grade_level, subject)
 VALUES
-    ('m0000000-0000-0000-0000-000000000001', 'Game Vòng Quay Tri Thức: 8 Biện Pháp Tu Từ', 'Trò chơi tương tác giúp học sinh nhận diện nhanh so sánh, ẩn dụ, hoán dụ.', 'https://wordwall.net/embed/4f6d4d5e2a3b4c5d6e7f', 'game_iframe', 'a0000000-0000-0000-0000-000000000001', true, 7, 'Ngữ văn'),
-    ('m0000000-0000-0000-0000-000000000002', 'Bài giảng PPTX: Cội nguồn yêu thương - Bài 3', 'Giáo án điện tử số hóa tích hợp video tư liệu.', 'https://dcmlhyzjkuagjafbvspj.supabase.co/storage/v1/object/public/materials/coi-nguon-yeu-thuong.pptx', 'document', 'a0000000-0000-0000-0000-000000000001', true, 7, 'Ngữ văn')
+    ('cccccccc-cccc-cccc-cccc-cccccccccccc', 'Game Vòng Quay Tri Thức: 8 Biện Pháp Tu Từ', 'Trò chơi tương tác giúp học sinh nhận diện nhanh so sánh, ẩn dụ, hoán dụ.', 'https://wordwall.net/embed/4f6d4d5e2a3b4c5d6e7f', 'game_iframe', '11111111-1111-1111-1111-111111111111', true, 7, 'Ngữ văn'),
+    ('dddddddd-dddd-dddd-dddd-dddddddddddd', 'Bài giảng PPTX: Cội nguồn yêu thương - Bài 3', 'Giáo án điện tử số hóa tích hợp video tư liệu.', 'https://dcmlhyzjkuagjafbvspj.supabase.co/storage/v1/object/public/materials/coi-nguon-yeu-thuong.pptx', 'document', '11111111-1111-1111-1111-111111111111', true, 7, 'Ngữ văn')
 ON CONFLICT (id) DO NOTHING;
 
 -- 5. Giao bài tập cho lớp
 INSERT INTO public.assignments (id, material_id, class_id, due_date)
 VALUES
-    ('d0000000-0000-0000-0000-000000000001', 'm0000000-0000-0000-0000-000000000001', 'c0000000-0000-0000-0000-000000000001', now() + interval '7 days')
+    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee', 'cccccccc-cccc-cccc-cccc-cccccccccccc', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', now() + interval '7 days')
 ON CONFLICT (id) DO NOTHING;
